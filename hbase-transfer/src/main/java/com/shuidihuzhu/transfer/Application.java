@@ -1,32 +1,15 @@
 package com.shuidihuzhu.transfer;
 
-import com.ngdata.sep.EventListener;
-import com.ngdata.sep.PayloadExtractor;
-import com.ngdata.sep.SepEvent;
-import com.ngdata.sep.SepModel;
-import com.ngdata.sep.impl.BasePayloadExtractor;
-import com.ngdata.sep.impl.SepConsumer;
-import com.ngdata.sep.impl.SepModelImpl;
-import com.ngdata.sep.util.zookeeper.ZkUtil;
-import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
-import java.util.List;
-
-@SpringBootApplication
-@EnableAutoConfiguration
-@EnableDiscoveryClient
+/**
+ * Created by zhouyou on 2017/12/28.
+ */
+@SpringBootApplication(scanBasePackages = {
+        "com.shuidihuzhu.transfer"
+})
 public class Application {
-
     public static void main(String[] args) {
-
+        System.setProperty("es.set.netty.runtime.available.processors", "false");
         SpringApplication.run(Application.class, args);
 
         /*try {
@@ -57,9 +40,7 @@ public class Application {
         } catch (Exception e) {
             e.printStackTrace();
         }*/
-
     }
-
 
     /*private static class EventLogger implements EventListener {
         @Override
