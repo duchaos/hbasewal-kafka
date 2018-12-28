@@ -25,6 +25,8 @@
 		<module>hbase-transfer</module>
 	</modules>
 
+
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
