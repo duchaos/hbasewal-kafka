@@ -1,6 +1,9 @@
 package com.shuidihuzhu.transfer;
 
 
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
 @SpringBootApplication(scanBasePackages = {
         "com.shuidihuzhu.transfer"
 })

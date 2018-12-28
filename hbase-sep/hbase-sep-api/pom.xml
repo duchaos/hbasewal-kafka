@@ -39,7 +39,11 @@
       <version>${version.zookeeper}</version>
       <exclusions>
         <exclusion>
-          <groupId>log4j</groupId>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>*</groupId>
           <artifactId>log4j</artifactId>
         </exclusion>
       </exclusions>
@@ -50,7 +54,11 @@
       <version>${version.hbase}</version>
       <exclusions>
         <exclusion>
-          <groupId>log4j</groupId>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>*</groupId>
           <artifactId>log4j</artifactId>
         </exclusion>
       </exclusions>
