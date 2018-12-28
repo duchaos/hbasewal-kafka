@@ -1,0 +1,8 @@
+server:
+  port: 8131
+spring:
+  main:
+    banner-mode: "off"
+  jooq:
+      sql-dialect: mysql
+

@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: @app.name@
+    version: @project.version@
+  profiles:
+    active: debug
+  cloud:
+    config:
+      enabled: true
+      uri: http://configserver.shuiditech.com
+      label: develop
+logging:
+  path: ${app.log.path:${user.home}/logs}
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSSZ}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr([%t]){faint} %clr(%logger{39}.%M:%L){cyan} %m%n"
