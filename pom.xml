@@ -21,8 +21,8 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<modules>
-		<module>hbase-sep</module>
 		<module>hbase-transfer</module>
+		<module>hbase-sep</module>
 	</modules>
 
 	<dependencyManagement>
