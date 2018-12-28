@@ -23,6 +23,7 @@
 	<modules>
 		<module>hbase-transfer</module>
 		<module>hbase-sep</module>
+		<module>test</module>
 	</modules>
 
 	<dependencyManagement>
