@@ -19,31 +19,39 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import java.util.List;
 
 @SpringBootApplication(scanBasePackages = {
         "com.shuidihuzhu.transfer"
 })
 public class Application {
+
+    static final String zookeeperConnectors = "localhost";
+    static final String subscriptionName = "logger";
+    static final String hbaseTable = "sep-user-demo";
+    static final String hbaseColumnFamily = "info";
+
+
+
     public static void main(String[] args) {
 
+        // todo 配置接入configserver
 
-        System.setProperty("es.set.netty.runtime.available.processors", "false");
+
+
+
 
         try {
             Configuration conf = HBaseConfiguration.create();
             conf.setBoolean("hbase.replication", true);
 
-            ZooKeeperItf zk = ZkUtil.connect("localhost", 20000);
+            ZooKeeperItf zk = ZkUtil.connect(zookeeperConnectors, 20000);
             SepModel sepModel = new SepModelImpl(zk, conf);
-
-            final String subscriptionName = "logger";
 
             if (!sepModel.hasSubscription(subscriptionName)) {
                 sepModel.addSubscriptionSilent(subscriptionName);
             }
 
-            PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes("sep-user-demo"), Bytes.toBytes("info"), Bytes.toBytes("payload"));
+            PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes(hbaseTable), Bytes.toBytes(hbaseColumnFamily), Bytes.toBytes("payload"));
 
             SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, new SepEventListener(), 1, "localhost", zk, conf, payloadExtractor);
 
