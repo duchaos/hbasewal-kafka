@@ -3,7 +3,7 @@ package com.shuidihuzhu.transfer.listener;
 import com.ngdata.sep.EventListener;
 import com.ngdata.sep.SepEvent;
 import com.shuidihuzhu.transfer.model.SinkRecord;
-import com.shuidihuzhu.transfer.sink.HbaseSink;
+import com.shuidihuzhu.transfer.sink.ESSink;
 import com.shuidihuzhu.transfer.sink.KafkaSink;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -20,7 +20,7 @@ public class SepEventListener implements EventListener {
     @Autowired
     KafkaSink kafkaSink;
     @Autowired
-    HbaseSink hbaseSink;
+    ESSink esSink;
 
     @Override
     public void processEvents(List<SepEvent> sepEvents) {
@@ -45,6 +45,7 @@ public class SepEventListener implements EventListener {
                 System.out.println(record.toString());
 
                 //kafkaSink.sink(record);
+                //esSink.sink(record);
             }
         }
     }

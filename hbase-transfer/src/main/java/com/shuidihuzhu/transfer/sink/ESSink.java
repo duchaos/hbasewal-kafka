@@ -10,7 +10,7 @@ import java.util.List;
  * Created by sunfu on 2018/12/29.
  */
 @Service
-public class HbaseSink extends AbstractSink {
+public class ESSink extends AbstractSink {
 
     @Override
     public void sink(SinkRecord record) {
