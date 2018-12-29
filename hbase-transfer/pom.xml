@@ -192,6 +192,10 @@
           <artifactId>servlet-api</artifactId>
           <groupId>javax.servlet</groupId>
         </exclusion>
+        <exclusion>
+          <artifactId>hbase-protocol</artifactId>
+          <groupId>org.apache.hbase</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
 

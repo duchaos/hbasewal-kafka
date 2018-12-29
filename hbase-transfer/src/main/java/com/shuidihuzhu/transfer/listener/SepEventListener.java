@@ -44,7 +44,7 @@ public class SepEventListener implements EventListener {
                 record.setPayload(payload);
                 System.out.println(record.toString());
 
-                kafkaSink.sink(record);
+                //kafkaSink.sink(record);
             }
         }
     }
