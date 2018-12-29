@@ -31,6 +31,24 @@ public class TransferTask implements CommandLineRunner{
     static String hbaseColumnFamily = "info";
     static String columnQualifier = "payload";
 
+    /**
+     *
+     configserver配置文件格式如下，支持多个表的复制
+     ---
+     zookeeper:
+        servers: localhost
+     subscription:
+         list:
+         - {name: logger}
+         - {name: logger1}
+     hbase:
+         list:
+         - {table: sep-user-demo, column-family: info, column-qualifier: payload}
+         - {table: sep-user-demo1, column-family: info1, column-qualifier: payload}
+
+     *
+     */
+
     @Override
     public void run(String... strings) throws Exception {
         /*ConfigServerConfig.env = "develop";
