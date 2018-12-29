@@ -7,6 +7,9 @@ import com.ngdata.sep.impl.SepConsumer;
 import com.ngdata.sep.impl.SepModelImpl;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
+import com.shuidihuzhu.flink.util.config.ConfigServerConfig;
+import com.shuidihuzhu.flink.util.config.ConfigServerUtil;
+import com.shuidihuzhu.flink.util.config.EnvEnum;
 import com.shuidihuzhu.transfer.listener.SepEventListener;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -33,11 +36,15 @@ public class TransferTask implements CommandLineRunner{
         /*ConfigServerConfig.env = "develop";
         ConfigServerUtil configServerUtils = ConfigServerUtil.getInstance("hbase-transfer", EnvEnum.valueOf(ConfigServerConfig.env));
 
-        zookeeperConnectors = configServerUtils.get("zookeeper.servers");
-        subscriptionName = configServerUtils.get("subscription.name");
-        hbaseTable = configServerUtils.get("hbase.table");
-        hbaseColumnFamily = configServerUtils.get("column-family");
-        columnQualifier = configServerUtils.get("column-qualifier");*/
+        String zookeepers = configServerUtils.get("zookeeper.servers");
+        String subscription = configServerUtils.get("subscription.list");
+        String table = configServerUtils.get("hbase.list");
+
+        System.out.println(zookeepers + "---" + subscription + "---" + table);*/
+
+        /**
+         * 如果需要同步多张表，这里面应该怎么写，for循环么？
+         */
 
         try {
             // 连接zk
