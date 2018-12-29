@@ -50,7 +50,7 @@
   <modules>
     <module>hbase-sep-api</module>
     <module>hbase-sep-impl</module>
-    <!--<module>hbase-sep-demo</module>-->
+    <module>hbase-sep-demo</module>
     <module>hbase-sep-tools</module>
   </modules>
 
