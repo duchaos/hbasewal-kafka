@@ -14,9 +14,14 @@ import com.shuidihuzhu.transfer.listener.SepEventListener;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 /**
  * Created by sunfu on 2018/12/29.
@@ -25,12 +30,14 @@ import org.springframework.stereotype.Component;
 @Order(1)
 public class TransferTask implements CommandLineRunner{
 
-    static String zookeeperConnectors = "localhost";
+    static String zookeeperConnectors = "10.100.4.2,10.100.4.3,10.100.4.4";
     static String subscriptionName = "logger";
-    static String hbaseTable = "sep-user-demo";
-    static String hbaseColumnFamily = "info";
+    static String hbaseTable = "sdhz_user_info_realtime";
+    static String hbaseColumnFamily = "data";
     static String columnQualifier = "payload";
 
+    @Value("${spring.cloud.client.ipAddress}")
+    private String ip;
     /**
      *
      configserver配置文件格式如下，支持多个表的复制
@@ -48,6 +55,9 @@ public class TransferTask implements CommandLineRunner{
 
      *
      */
+
+    @Autowired
+    SepEventListener sepEventListener;
 
     @Override
     public void run(String... strings) throws Exception {
@@ -80,7 +90,14 @@ public class TransferTask implements CommandLineRunner{
             PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes(hbaseTable), Bytes.toBytes(hbaseColumnFamily), Bytes.toBytes(columnQualifier));
 
             // 创建sep rpc server
-            SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, new SepEventListener(), 1, "localhost", zk, conf, payloadExtractor);
+            String host = null;
+            try {
+                host = InetAddress.getLocalHost().getHostAddress();
+                System.out.println("===================="+ip);
+            } catch (UnknownHostException e) {
+//                log.error("get server host Exception e:", e);
+            }
+            SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, sepEventListener, 1, ip, zk, conf, payloadExtractor);
             sepConsumer.start();
 
             System.out.println("hbase transfer started...");

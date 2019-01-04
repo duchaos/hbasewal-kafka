@@ -9,18 +9,20 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 /**
  * Created by sunfu on 2018/12/29.
  */
+@Service
 public class SepEventListener implements EventListener {
 
     @Autowired
     KafkaSink kafkaSink;
     @Autowired
-    ESSink esSink;
+    ESSink eSSink;
 
     @Override
     public void processEvents(List<SepEvent> sepEvents) {
@@ -45,7 +47,7 @@ public class SepEventListener implements EventListener {
                 System.out.println(record.toString());
 
                 //kafkaSink.sink(record);
-                //esSink.sink(record);
+                eSSink.sink(record);
             }
         }
     }

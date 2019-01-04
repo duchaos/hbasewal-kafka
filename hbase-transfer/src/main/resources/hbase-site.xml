@@ -10,7 +10,7 @@
   </property>
   <property>
     <name>hbase.zookeeper.quorum</name>
-    <value>localhost</value>
+    <value>10.100.4.2,10.100.4.3,10.100.4.4</value>
   </property>
   <property>
     <name>hbase.zookeeper.property.clientPort</name>
