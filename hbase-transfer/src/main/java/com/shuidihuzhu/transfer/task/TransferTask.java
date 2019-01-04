@@ -36,7 +36,7 @@ public class TransferTask implements CommandLineRunner{
     static String hbaseColumnFamily = "data";
     static String columnQualifier = "payload";
 
-    @Value("${spring.cloud.client.ipAddress}")
+    @Value("${spring.cloud.client.ip-address}")
     private String ip;
     /**
      *
