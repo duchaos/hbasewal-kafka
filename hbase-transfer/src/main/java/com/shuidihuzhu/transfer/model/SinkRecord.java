@@ -119,7 +119,8 @@ public class SinkRecord {
                 //record.getFamily() + "|" +
                 //record.getQualifier() + "|" +
                 record.getColumn() + "|" +
-                record.getValue() + "|" +
+                //record.getValue() + "|" +
+                record.getKeyValues() + "|" +
                 record.getTimestamp() + "|" +
                 record.getPayload();
     }
