@@ -14,7 +14,7 @@ import java.util.Properties;
 @Service
 public class KafkaSink extends AbstractSink {
 
-    String topic = "test";
+    String topic = "hbase-tranfer";
     Producer<String, String> procuder = null;
 
     @PostConstruct
@@ -32,11 +32,11 @@ public class KafkaSink extends AbstractSink {
     @Override
     public void sink(SinkRecord record) {
         try {
-            ProducerRecord<String,String> item = new ProducerRecord<String, String>(topic, getText(record));
+            ProducerRecord<String,String> item = new ProducerRecord<String, String>(topic, SinkRecord.getText(record));
             procuder.send(item, new Callback() {
                 @Override
                 public void onCompletion(RecordMetadata metadata, Exception exception) {
-                    System.out.println("message send to partition=" + metadata.partition() + ", offset=" + metadata.offset() + ", content=" + record.toString());
+                    System.out.println("message send to partition=" + metadata.partition() + ", offset=" + metadata.offset() + ", content=" + SinkRecord.getText(record));
                 }
             });
         } catch (Exception e) {
@@ -50,13 +50,5 @@ public class KafkaSink extends AbstractSink {
 
     }
 
-    public String getText(SinkRecord record) {
-        return record.getTable() + "|" +
-                record.getRowKey() + "|" +
-                record.getFamily() + "|" +
-                record.getQualifier() + "|" +
-                record.getValue() + "|" +
-                record.getTimestamp() + "|" +
-                record.getPayload();
-    }
+
 }

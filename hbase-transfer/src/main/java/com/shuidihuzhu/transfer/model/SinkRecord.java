@@ -1,5 +1,7 @@
 package com.shuidihuzhu.transfer.model;
 
+import java.util.Map;
+
 /**
  * Created by sunfu on 2018/12/29.
  */
@@ -19,6 +21,8 @@ public class SinkRecord {
     private long timestamp;
     // 什么鬼？
     private String payload;
+
+    private Map<String, Object> keyValues;
 
     public String getTable() {
         return table;
@@ -76,6 +80,14 @@ public class SinkRecord {
         this.payload = payload;
     }
 
+    public Map<String, Object> getKeyValues() {
+        return keyValues;
+    }
+
+    public void setKeyValues(Map<String, Object> keyValues) {
+        this.keyValues = keyValues;
+    }
+
     @Override
     public String toString() {
         return "SinkRecord{" +
@@ -87,5 +99,15 @@ public class SinkRecord {
                 ", timestamp=" + timestamp +
                 ", payload='" + payload + '\'' +
                 '}';
+    }
+
+    public static String getText(SinkRecord record) {
+        return record.getTable() + "|" +
+                record.getRowKey() + "|" +
+                record.getFamily() + "|" +
+                record.getQualifier() + "|" +
+                record.getValue() + "|" +
+                record.getTimestamp() + "|" +
+                record.getPayload();
     }
 }

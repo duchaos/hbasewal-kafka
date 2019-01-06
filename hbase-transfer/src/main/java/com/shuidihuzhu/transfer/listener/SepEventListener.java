@@ -1,5 +1,6 @@
 package com.shuidihuzhu.transfer.listener;
 
+import com.google.common.collect.Maps;
 import com.ngdata.sep.EventListener;
 import com.ngdata.sep.SepEvent;
 import com.shuidihuzhu.transfer.model.SinkRecord;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by sunfu on 2018/12/29.
@@ -29,6 +31,9 @@ public class SepEventListener implements EventListener {
         for (SepEvent sepEvent : sepEvents) {
             String table = Bytes.toString(sepEvent.getTable());
             String payload = Bytes.toString(sepEvent.getPayload());
+            SinkRecord record = new SinkRecord();
+
+            Map<String, Object> keyValues = Maps.newHashMap();
             for (Cell cell : sepEvent.getKeyValues()) {
                 String rowKey = Bytes.toString(CellUtil.cloneRow(cell));
                 long timestamp = cell.getTimestamp();
@@ -36,7 +41,6 @@ public class SepEventListener implements EventListener {
                 String qualifier  = Bytes.toString(CellUtil.cloneQualifier(cell));
                 String value = Bytes.toString(CellUtil.cloneValue(cell));
 
-                SinkRecord record = new SinkRecord();
                 record.setTable(table);
                 record.setFamily(family);
                 record.setQualifier(qualifier);
@@ -44,10 +48,29 @@ public class SepEventListener implements EventListener {
                 record.setTimestamp(timestamp);
                 record.setValue(value);
                 record.setPayload(payload);
-                System.out.println(record.toString());
 
-                //kafkaSink.sink(record);
+                String column = "";
+                if (family.equals("data")) {
+                    column = family + "_" + qualifier;
+                } else {
+                    column = qualifier;
+                }
+                keyValues.put(column, value);
+            }
+
+            record.setKeyValues(keyValues);
+
+            try {
+                kafkaSink.sink(record);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("kafka error=" + SinkRecord.getText(record));
+            }
+            try {
                 eSSink.sink(record);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("es error=" + SinkRecord.getText(record));
             }
         }
     }
