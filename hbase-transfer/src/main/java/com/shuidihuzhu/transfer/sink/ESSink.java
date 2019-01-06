@@ -15,6 +15,8 @@ import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +28,8 @@ import java.util.Map;
  */
 @Service
 public class ESSink extends AbstractSink implements InitializingBean {
+
+    private Logger logger = LoggerFactory.getLogger(ESSink.class);
 
     private JestClient client;
     @Override
@@ -61,7 +65,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
             result = client.execute(updateByQuery);
         }catch (Exception e){
-            handleErrorRecord(record);
+            logger.error("es update error",e);
         }
     }
 
@@ -96,6 +100,4 @@ public class ESSink extends AbstractSink implements InitializingBean {
     public void batchSink(List<SinkRecord> records) {
 
     }
-
-
 }
