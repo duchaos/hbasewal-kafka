@@ -31,8 +31,8 @@ public class TransferTask implements CommandLineRunner{
     private String subscriptionName;
     @Value("${hbase-transfer.hbase.table}")
     private String hbaseTable;
-    static String hbaseColumnFamily = "data";
-    static String columnQualifier = "payload";
+//    static String hbaseColumnFamily = "data";
+//    static String columnQualifier = "payload";
 
     @Value("${spring.cloud.client.ip-address}")
     private String ip;
@@ -55,7 +55,7 @@ public class TransferTask implements CommandLineRunner{
                 sepModel.addSubscriptionSilent(subscriptionName);
             }
 
-            PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes(hbaseTable), hbaseColumnFamily.getBytes(),columnQualifier.getBytes());
+            PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes(hbaseTable), "".getBytes(),"".getBytes());
 
             SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, sepEventListener, 1, ip, zk, conf, payloadExtractor);
             sepConsumer.start();

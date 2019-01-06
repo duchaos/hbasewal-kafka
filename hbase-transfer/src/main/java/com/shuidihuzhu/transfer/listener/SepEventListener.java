@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,10 +31,16 @@ public class SepEventListener implements EventListener {
     @Autowired
     ESSink eSSink;
 
+    @Value("${hbase-transfer.hbase.table}")
+    private String tableName;
+
     @Override
     public void processEvents(List<SepEvent> sepEvents) {
         for (SepEvent sepEvent : sepEvents) {
             String table = Bytes.toString(sepEvent.getTable());
+            if(!table.equals(tableName)){
+                continue;
+            }
             String payload = Bytes.toString(sepEvent.getPayload());
             SinkRecord record = new SinkRecord();
 
