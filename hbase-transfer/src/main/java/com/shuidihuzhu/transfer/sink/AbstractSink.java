@@ -14,7 +14,7 @@ public abstract class AbstractSink {
     public abstract void batchSink(List<SinkRecord> records);
 
     public void handleErrorRecord(SinkRecord record) {
-        // todo 怎么处理？
+        throw new RuntimeException("transfer error");
     }
 
     public void handleBatchErrorRecord(List<SinkRecord> records) {

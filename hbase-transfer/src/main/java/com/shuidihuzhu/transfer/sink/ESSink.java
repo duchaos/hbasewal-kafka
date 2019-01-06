@@ -10,6 +10,8 @@ import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
+import io.searchbox.core.Bulk;
+import io.searchbox.core.Index;
 import io.searchbox.core.UpdateByQuery;
 import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -18,6 +20,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,6 +35,14 @@ public class ESSink extends AbstractSink implements InitializingBean {
     private Logger logger = LoggerFactory.getLogger(ESSink.class);
 
     private JestClient client;
+
+    @Value("${hbase-transfer.elasticsearch.index}")
+    private String indexName;
+    @Value("${hbase-transfer.elasticsearch.type}")
+    private String indexType;
+    @Value("${hbase-transfer.elasticsearch.url}")
+    private String esUrl;
+
     @Override
     public void afterPropertiesSet() throws Exception {
         JestClientFactory factory = new JestClientFactory();
@@ -41,7 +52,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
                 .setDateFormat(ELASTIC_SEARCH_DATE_FORMAT)
                 .create();
         factory.setHttpClientConfig(new HttpClientConfig
-                .Builder("http://10.100.2.3:9201")
+                .Builder(esUrl)
                 .multiThreaded(true)
                 .defaultMaxTotalConnectionPerRoute(2)
                 .connTimeout(3600000)
@@ -55,17 +66,40 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
     @Override
     public void sink(SinkRecord record) {
-        SearchSourceBuilder sourceBuilder = null;
-        JestResult result = null;
         try{
-            UpdateByQuery updateByQuery = new UpdateByQuery.Builder(buildSearch(record))
-                    .addIndex("hbase2-test-table")
-                    .addType("detail")
-                    .build();
+            JestResult updateResult = updateAction(record);
 
-            result = client.execute(updateByQuery);
+            if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
+                insertAction(record);
+            }
         }catch (Exception e){
-            logger.error("es update error",e);
+            handleErrorRecord(record);
+        }
+    }
+
+    public JestResult updateAction(SinkRecord record) throws Exception{
+        record.getKeyValues().put("id",record.getRowKey());
+        UpdateByQuery updateByQuery = new UpdateByQuery.Builder(buildSearch(record))
+                .addIndex(indexName)
+                .addType(indexType)
+                .build();
+
+        return client.execute(updateByQuery);
+    }
+
+    public void insertAction(SinkRecord record) throws Exception{
+        Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
+        Index index = null;
+        if(!StringUtils.isEmpty(record.getRowKey())){
+            index = new Index.Builder(record.getKeyValues()).id(record.getRowKey()).build();
+        }else{
+            index = new Index.Builder(record.getKeyValues()).build();
+        }
+        bulkBuilder.addAction(index).build();
+
+        JestResult result = client.execute(bulkBuilder.build());
+        if(!result.isSucceeded()){
+            throw new Exception("execute es error.msg="+result.getErrorMessage());
         }
     }
 
@@ -88,7 +122,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         Map<String,String> scriptMap = Maps.newHashMap();
         String script = "";
         for(Map.Entry<String,Object> tmp : record.getKeyValues().entrySet()){
-            script = script+"ctx._source."+tmp.getKey()+"='"+record.getValue()+"';";
+            script = script+"ctx._source."+tmp.getKey()+"='"+tmp.getValue()+"';";
         }
         scriptMap.put("source",script);
         scriptMap.put("lang","painless");

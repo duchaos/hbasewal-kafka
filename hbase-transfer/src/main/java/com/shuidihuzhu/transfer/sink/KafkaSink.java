@@ -2,6 +2,7 @@ package com.shuidihuzhu.transfer.sink;
 
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import org.apache.kafka.clients.producer.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -13,14 +14,17 @@ import java.util.Properties;
  */
 @Service
 public class KafkaSink extends AbstractSink {
-
-    String topic = "hbase-tranfer";
+    @Value("${hbase-transfer.kafka.bootstrap.topic}")
+    private String topic;
     Producer<String, String> procuder = null;
+
+    @Value("${hbase-transfer.kafka.bootstrap.server}")
+    private String bootstrap;
 
     @PostConstruct
     public void init() {
         Properties props = new Properties();
-        props.put("bootstrap.servers", "10.100.4.2:9092,10.100.4.3:9092,10.100.4.4:9092");
+        props.put("bootstrap.servers", bootstrap);
         props.put("acks", "1");
         props.put("retries", 3);
         props.put("batch.size", 16384);
@@ -36,7 +40,7 @@ public class KafkaSink extends AbstractSink {
             procuder.send(item, new Callback() {
                 @Override
                 public void onCompletion(RecordMetadata metadata, Exception exception) {
-                    System.out.println("message send to partition=" + metadata.partition() + ", offset=" + metadata.offset() + ", content=" + SinkRecord.getText(record));
+//                    System.out.println("message send to partition=" + metadata.partition() + ", offset=" + metadata.offset() + ", content=" + SinkRecord.getText(record));
                 }
             });
         } catch (Exception e) {
