@@ -37,6 +37,7 @@ public class TransferTask implements CommandLineRunner{
     @Value("${spring.cloud.client.ip-address}")
     private String ip;
 
+
     @Autowired
     SepEventListener sepEventListener;
 
@@ -50,6 +51,7 @@ public class TransferTask implements CommandLineRunner{
             // 访问zk，add peers
             Configuration conf = HBaseConfiguration.create();
             conf.setBoolean("hbase.replication", true);
+            conf.set("hbase.zookeeper.quorum",zookeeperConnectors);
             SepModel sepModel = new SepModelImpl(zk, conf);
             if (!sepModel.hasSubscription(subscriptionName)) {
                 sepModel.addSubscriptionSilent(subscriptionName);
