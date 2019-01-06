@@ -9,6 +9,8 @@ import com.shuidihuzhu.transfer.sink.KafkaSink;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,8 @@ import java.util.Map;
  */
 @Service
 public class SepEventListener implements EventListener {
+
+    private Logger logger = LoggerFactory.getLogger(SepEventListener.class);
 
     @Autowired
     KafkaSink kafkaSink;
@@ -64,13 +68,13 @@ public class SepEventListener implements EventListener {
             try {
                 kafkaSink.sink(record);
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("kafka sink error.",e);
                 System.err.println("kafka error=" + SinkRecord.getText(record));
             }
             try {
                 eSSink.sink(record);
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("es sink error.",e);
                 System.err.println("es error=" + SinkRecord.getText(record));
             }
         }
