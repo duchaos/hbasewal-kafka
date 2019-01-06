@@ -32,8 +32,8 @@ public class TransferTask implements CommandLineRunner{
 
     static String zookeeperConnectors = "10.100.4.2,10.100.4.3,10.100.4.4";
     static String subscriptionName = "logger";
-    static String hbaseTable = "sdhz_user_info_realtime";
-    static String hbaseColumnFamily = "data";
+    static String hbaseTable = "hbase2-test";
+    static String hbaseColumnFamily = "info";
     static String columnQualifier = "payload";
 
     @Value("${spring.cloud.client.ip-address}")
@@ -90,13 +90,13 @@ public class TransferTask implements CommandLineRunner{
             PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes(hbaseTable), Bytes.toBytes(hbaseColumnFamily), Bytes.toBytes(columnQualifier));
 
             // 创建sep rpc server
-            String host = null;
-            try {
-                host = InetAddress.getLocalHost().getHostAddress();
-                System.out.println("===================="+ip);
-            } catch (UnknownHostException e) {
-//                log.error("get server host Exception e:", e);
-            }
+//            String host = null;
+//            try {
+//                host = InetAddress.getLocalHost().getHostAddress();
+//                System.out.println("===================="+ip);
+//            } catch (UnknownHostException e) {
+////                log.error("get server host Exception e:", e);
+//            }
             SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, sepEventListener, 1, ip, zk, conf, payloadExtractor);
             sepConsumer.start();
 
