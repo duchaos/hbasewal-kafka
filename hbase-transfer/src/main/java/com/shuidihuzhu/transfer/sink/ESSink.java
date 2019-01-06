@@ -59,7 +59,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         JestResult result = null;
         try{
             UpdateByQuery updateByQuery = new UpdateByQuery.Builder(buildSearch(record))
-                    .addIndex("sdhz_user_info_realtime")
+                    .addIndex("hbase2-test-table")
                     .addType("detail")
                     .build();
 
