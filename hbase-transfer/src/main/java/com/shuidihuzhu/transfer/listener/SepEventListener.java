@@ -55,6 +55,7 @@ public class SepEventListener implements EventListener {
                 } else {
                     column = qualifier;
                 }
+                record.setColumn(column);
                 keyValues.put(column, value);
             }
 

@@ -22,6 +22,8 @@ public class SinkRecord {
     // 什么鬼？
     private String payload;
 
+    private String column;
+
     private Map<String, Object> keyValues;
 
     public String getTable() {
@@ -88,6 +90,14 @@ public class SinkRecord {
         this.keyValues = keyValues;
     }
 
+    public String getColumn() {
+        return column;
+    }
+
+    public void setColumn(String column) {
+        this.column = column;
+    }
+
     @Override
     public String toString() {
         return "SinkRecord{" +
@@ -98,14 +108,17 @@ public class SinkRecord {
                 ", value='" + value + '\'' +
                 ", timestamp=" + timestamp +
                 ", payload='" + payload + '\'' +
+                ", column='" + column + '\'' +
+                ", keyValues=" + keyValues +
                 '}';
     }
 
     public static String getText(SinkRecord record) {
         return record.getTable() + "|" +
                 record.getRowKey() + "|" +
-                record.getFamily() + "|" +
-                record.getQualifier() + "|" +
+                //record.getFamily() + "|" +
+                //record.getQualifier() + "|" +
+                record.getColumn() + "|" +
                 record.getValue() + "|" +
                 record.getTimestamp() + "|" +
                 record.getPayload();
