@@ -24,9 +24,10 @@ import org.springframework.stereotype.Component;
 @Order(1)
 public class TransferTask implements CommandLineRunner{
 
-//    static String zookeeperConnectors = "10.100.4.2,10.100.4.3,10.100.4.4";
     @Value("${hbase-transfer.hbase.zookeeper.servers}")
-    private String zookeeperConnectors;
+    private String hbaseZookeeper;
+    @Value("${hbase-transfer.sep.zookeeper.servers}")
+    private String sepZookeeper;
     @Value("${hbase-transfer.subscription.name}")
     private String subscriptionName;
     @Value("${hbase-transfer.hbase.table}")
@@ -46,12 +47,12 @@ public class TransferTask implements CommandLineRunner{
 
         try {
             // 连接zk
-            ZooKeeperItf zk = ZkUtil.connect(zookeeperConnectors, 20000);
+            ZooKeeperItf zk = ZkUtil.connect(sepZookeeper, 20000);
 
             // 访问zk，add peers
             Configuration conf = HBaseConfiguration.create();
             conf.setBoolean("hbase.replication", true);
-            conf.set("hbase.zookeeper.quorum",zookeeperConnectors);
+            conf.set("hbase.zookeeper.quorum",hbaseZookeeper);
             SepModel sepModel = new SepModelImpl(zk, conf);
             if (!sepModel.hasSubscription(subscriptionName)) {
                 sepModel.addSubscriptionSilent(subscriptionName);
