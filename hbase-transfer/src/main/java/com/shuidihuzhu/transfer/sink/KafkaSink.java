@@ -1,7 +1,10 @@
 package com.shuidihuzhu.transfer.sink;
 
+import com.shuidihuzhu.transfer.listener.SepEventListener;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import org.apache.kafka.clients.producer.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +17,8 @@ import java.util.Properties;
  */
 @Service
 public class KafkaSink extends AbstractSink {
+    private Logger logger = LoggerFactory.getLogger(KafkaSink.class);
+
     @Value("${hbase-transfer.kafka.bootstrap.topic}")
     private String topic;
     Producer<String, String> procuder = null;
@@ -31,6 +36,8 @@ public class KafkaSink extends AbstractSink {
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         procuder = new KafkaProducer<String, String>(props);
+
+
     }
 
     @Override
@@ -44,9 +51,13 @@ public class KafkaSink extends AbstractSink {
                 }
             });
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("kafka send error.",e);
             handleErrorRecord(record);
         }
+    }
+
+    public void consumer(){
+
     }
 
     @Override

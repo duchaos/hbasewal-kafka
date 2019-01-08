@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * Created by sunfu on 2018/12/29.
  */
 @Component
-@Order(1)
+@Order(2)
 public class TransferTask implements CommandLineRunner{
 
     @Value("${hbase-transfer.hbase.zookeeper.servers}")
@@ -30,37 +30,24 @@ public class TransferTask implements CommandLineRunner{
     private String sepZookeeper;
     @Value("${hbase-transfer.subscription.name}")
     private String subscriptionName;
-    @Value("${hbase-transfer.hbase.table}")
-    private String hbaseTable;
-//    static String hbaseColumnFamily = "data";
-//    static String columnQualifier = "payload";
 
     @Value("${spring.cloud.client.ip-address}")
     private String ip;
 
-
     @Autowired
-    SepEventListener sepEventListener;
+    private SepEventListener sepEventListener;
 
     @Override
     public void run(String... strings) throws Exception {
 
         try {
             // 连接zk
-            ZooKeeperItf zk = ZkUtil.connect(sepZookeeper, 20000);
-
+            ZooKeeperItf sepZk = ZkUtil.connect(sepZookeeper, 20000);
             // 访问zk，add peers
             Configuration conf = HBaseConfiguration.create();
             conf.setBoolean("hbase.replication", true);
             conf.set("hbase.zookeeper.quorum",hbaseZookeeper);
-            SepModel sepModel = new SepModelImpl(zk, conf);
-            if (!sepModel.hasSubscription(subscriptionName)) {
-                sepModel.addSubscriptionSilent(subscriptionName);
-            }
-
-            PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes(hbaseTable), "".getBytes(),"".getBytes());
-
-            SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, sepEventListener, 1, ip, zk, conf, payloadExtractor);
+            SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, sepEventListener, 1, ip, sepZk, conf, null);
             sepConsumer.start();
 
             System.out.println("hbase transfer started...");

@@ -3,6 +3,7 @@ package com.shuidihuzhu.transfer.listener;
 import com.google.common.collect.Maps;
 import com.ngdata.sep.EventListener;
 import com.ngdata.sep.SepEvent;
+import com.shuidihuzhu.transfer.model.Config;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import com.shuidihuzhu.transfer.sink.ESSink;
 import com.shuidihuzhu.transfer.sink.KafkaSink;
@@ -27,15 +28,17 @@ public class SepEventListener implements EventListener {
     private Logger logger = LoggerFactory.getLogger(SepEventListener.class);
 
     @Autowired
-    KafkaSink kafkaSink;
+    private KafkaSink kafkaSink;
     @Autowired
-    ESSink eSSink;
+    private ESSink eSSink;
 
     @Value("${hbase-transfer.hbase.table}")
     private String tableName;
 
     @Override
     public void processEvents(List<SepEvent> sepEvents) {
+        logger.debug("Config.openKafka={}",Config.openKafka);
+        logger.debug("Config.openEs={}",Config.openEs);
         for (SepEvent sepEvent : sepEvents) {
             String table = Bytes.toString(sepEvent.getTable());
             if(!table.equals(tableName)){
@@ -72,18 +75,24 @@ public class SepEventListener implements EventListener {
 
             record.setKeyValues(keyValues);
 
-            try {
-                kafkaSink.sink(record);
-            } catch (Exception e) {
-                logger.error("kafka sink error.",e);
-                System.err.println("kafka error=" + SinkRecord.getText(record));
+            if(Config.openKafka){
+                try {
+                    kafkaSink.sink(record);
+                } catch (Exception e) {
+                    logger.error("kafka sink error.",e);
+                    System.err.println("kafka error=" + SinkRecord.getText(record));
+                }
             }
-            try {
-                eSSink.sink(record);
-            } catch (Exception e) {
-                logger.error("es sink error.",e);
-                System.err.println("es error=" + SinkRecord.getText(record));
+
+            if(Config.openEs){
+                try {
+                    eSSink.sink(record);
+                } catch (Exception e) {
+                    logger.error("es sink error.",e);
+                    System.err.println("es error=" + SinkRecord.getText(record));
+                }
             }
+
         }
     }
 

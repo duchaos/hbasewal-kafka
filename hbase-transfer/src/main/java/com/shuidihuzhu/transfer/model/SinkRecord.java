@@ -1,5 +1,7 @@
 package com.shuidihuzhu.transfer.model;
 
+import com.alibaba.fastjson.JSON;
+
 import java.util.Map;
 
 /**
@@ -114,14 +116,6 @@ public class SinkRecord {
     }
 
     public static String getText(SinkRecord record) {
-        return record.getTable() + "|" +
-                record.getRowKey() + "|" +
-                //record.getFamily() + "|" +
-                //record.getQualifier() + "|" +
-                record.getColumn() + "|" +
-                //record.getValue() + "|" +
-                record.getKeyValues() + "|" +
-                record.getTimestamp() + "|" +
-                record.getPayload();
+        return JSON.toJSONString(record);
     }
 }
