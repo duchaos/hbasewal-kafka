@@ -1,5 +1,5 @@
 server:
-  port: 8131
+  port: 19003
 spring:
   main:
     banner-mode: "off"

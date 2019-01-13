@@ -75,7 +75,7 @@ public class HKafkaConsumer {
                     List<ConsumerRecord<String, String>> partitionRecords = records.records(partition);
                     try{
                         for (ConsumerRecord<String, String> record : partitionRecords) {
-                            kafkaDataList.add(record.value());
+                            kafkaDataList.add(JSON.toJSONString(record));
                         }
                         toEs(kafkaDataList);
                         dualFlag = true;
