@@ -1,5 +1,6 @@
 package com.shuidihuzhu.transfer.sink;
 
+import com.alibaba.fastjson.JSON;
 import com.shuidihuzhu.transfer.listener.SepEventListener;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import org.apache.kafka.clients.producer.*;
@@ -43,7 +44,7 @@ public class KafkaSink extends AbstractSink {
     @Override
     public void sink(SinkRecord record) {
         try {
-            ProducerRecord<String,String> item = new ProducerRecord<String, String>(topic, SinkRecord.getText(record));
+            ProducerRecord<String,String> item = new ProducerRecord<String, String>(topic, JSON.toJSONString(record));
             procuder.send(item, new Callback() {
                 @Override
                 public void onCompletion(RecordMetadata metadata, Exception exception) {

@@ -37,8 +37,8 @@ public class SepEventListener implements EventListener {
 
     @Override
     public void processEvents(List<SepEvent> sepEvents) {
-        logger.debug("Config.openKafka={}",Config.openKafka);
-        logger.debug("Config.openEs={}",Config.openEs);
+//        logger.debug("Config.openKafka={}",Config.openKafka);
+//        logger.debug("Config.openEs={}",Config.openEs);
         for (SepEvent sepEvent : sepEvents) {
             String table = Bytes.toString(sepEvent.getTable());
             if(!table.equals(tableName)){

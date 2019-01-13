@@ -42,7 +42,7 @@ public class TransferTask implements CommandLineRunner{
 
         try {
             // 连接zk
-            ZooKeeperItf sepZk = ZkUtil.connect(sepZookeeper, 20000);
+            ZooKeeperItf sepZk = ZkUtil.connect(sepZookeeper, 2000000);
             // 访问zk，add peers
             Configuration conf = HBaseConfiguration.create();
             conf.setBoolean("hbase.replication", true);
