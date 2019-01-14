@@ -1,8 +1,8 @@
 package com.shuidihuzhu.transfer.listener;
 
 import com.google.common.collect.Maps;
-import com.ngdata.sep.EventListener;
-import com.ngdata.sep.SepEvent;
+import com.shuidihuzhu.sep.EventListener;
+import com.shuidihuzhu.sep.SepEvent;
 import com.shuidihuzhu.transfer.model.Config;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import com.shuidihuzhu.transfer.sink.ESSink;

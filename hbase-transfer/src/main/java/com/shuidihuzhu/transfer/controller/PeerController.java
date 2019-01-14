@@ -38,4 +38,26 @@ public class PeerController {
         return Response.makeSuccess(null);
     }
 
+    @RequestMapping(value="/disable", method = {RequestMethod.GET, RequestMethod.POST})
+    public @ResponseBody Response disable(){
+        try{
+            peerRegisterTask.disablePeer();
+        }catch (Exception e){
+            logger.error("add peer error.",e);
+            return Response.getInstance(Response.SYSTEM_SERVER_ERROR);
+        }
+        return Response.makeSuccess(null);
+    }
+
+    @RequestMapping(value="/enable", method = {RequestMethod.GET, RequestMethod.POST})
+    public @ResponseBody Response enable(){
+        try{
+            peerRegisterTask.enablePeer();
+        }catch (Exception e){
+            logger.error("add peer error.",e);
+            return Response.getInstance(Response.SYSTEM_SERVER_ERROR);
+        }
+        return Response.makeSuccess(null);
+    }
+
 }

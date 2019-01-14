@@ -1,16 +1,11 @@
 package com.shuidihuzhu.transfer.task;
 
-import com.ngdata.sep.PayloadExtractor;
-import com.ngdata.sep.SepModel;
-import com.ngdata.sep.impl.BasePayloadExtractor;
-import com.ngdata.sep.impl.SepConsumer;
-import com.ngdata.sep.impl.SepModelImpl;
-import com.ngdata.sep.util.zookeeper.ZkUtil;
-import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
+import com.shuidihuzhu.sep.impl.SepConsumer;
+import com.shuidihuzhu.sep.util.zookeeper.ZkUtil;
+import com.shuidihuzhu.sep.util.zookeeper.ZooKeeperItf;
 import com.shuidihuzhu.transfer.listener.SepEventListener;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;

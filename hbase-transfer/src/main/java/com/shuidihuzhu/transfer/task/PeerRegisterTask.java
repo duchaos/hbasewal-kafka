@@ -1,9 +1,9 @@
 package com.shuidihuzhu.transfer.task;
 
-import com.ngdata.sep.SepModel;
-import com.ngdata.sep.impl.SepModelImpl;
-import com.ngdata.sep.util.zookeeper.ZkUtil;
-import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
+import com.shuidihuzhu.sep.SepModel;
+import com.shuidihuzhu.sep.impl.SepModelImpl;
+import com.shuidihuzhu.sep.util.zookeeper.ZkUtil;
+import com.shuidihuzhu.sep.util.zookeeper.ZooKeeperItf;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +52,32 @@ public class PeerRegisterTask implements CommandLineRunner {
         SepModel sepModel = new SepModelImpl(sepZk, conf);
         if (sepModel.hasSubscription(subscriptionName)) {
             sepModel.removeSubscriptionSilent(subscriptionName);
+        }
+    }
+
+    public void disablePeer() throws Exception {
+        // 连接zk
+        ZooKeeperItf sepZk = ZkUtil.connect(sepZookeeper, 20000);
+        // 访问zk，add peers
+        Configuration conf = HBaseConfiguration.create();
+        conf.setBoolean("hbase.replication", true);
+        conf.set("hbase.zookeeper.quorum",hbaseZookeeper);
+        SepModel sepModel = new SepModelImpl(sepZk, conf);
+        if (sepModel.hasSubscription(subscriptionName)) {
+            sepModel.disableSubscriptionSilent(subscriptionName);
+        }
+    }
+
+    public void enablePeer() throws Exception {
+        // 连接zk
+        ZooKeeperItf sepZk = ZkUtil.connect(sepZookeeper, 20000);
+        // 访问zk，add peers
+        Configuration conf = HBaseConfiguration.create();
+        conf.setBoolean("hbase.replication", true);
+        conf.set("hbase.zookeeper.quorum",hbaseZookeeper);
+        SepModel sepModel = new SepModelImpl(sepZk, conf);
+        if (sepModel.hasSubscription(subscriptionName)) {
+            sepModel.enableSubscriptionSilent(subscriptionName);
         }
     }
 }
