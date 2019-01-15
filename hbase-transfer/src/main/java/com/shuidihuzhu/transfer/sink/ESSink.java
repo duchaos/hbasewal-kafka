@@ -3,6 +3,8 @@ package com.shuidihuzhu.transfer.sink;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.shuidihuzhu.transfer.model.SinkRecord;
@@ -21,16 +23,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
 
 /**
  * Created by sunfu on 2018/12/29.
  */
 @Service
 public class ESSink extends AbstractSink implements InitializingBean {
+
+    private ThreadFactory threadFactory;
+    private BlockingQueue<Runnable> blockingQueue;
+    private RejectedExecutionHandler rejectedExecutionHandler;
+    private ExecutorService executorService;
 
     private Logger logger = LoggerFactory.getLogger(ESSink.class);
 
@@ -62,16 +71,30 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
         client = factory.getObject();
 
+        threadFactory = new ThreadFactoryBuilder().setNameFormat("ThreadEventHandler").build();
+        blockingQueue = Queues.newLinkedBlockingQueue(50);
+        rejectedExecutionHandler = new ThreadPoolExecutor.CallerRunsPolicy();
+        executorService = new ThreadPoolExecutor(50, 50, 1L, TimeUnit.SECONDS, blockingQueue, threadFactory, rejectedExecutionHandler);
+
     }
 
     @Override
     public void sink(SinkRecord record) {
         try{
-            JestResult updateResult = updateAction(record);
-
-            if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
-                insertAction(record);
-            }
+            // 异步提交到线程池执行
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        JestResult updateResult = updateAction(record);
+                        if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
+                            insertAction(record);
+                        }
+                    } catch (Exception e) {
+                        handleErrorRecord(record);
+                    }
+                }
+            });
         }catch (Exception e){
             handleErrorRecord(record);
         }
@@ -133,5 +156,13 @@ public class ESSink extends AbstractSink implements InitializingBean {
     @Override
     public void batchSink(List<SinkRecord> records) {
 
+    }
+
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
+
+    public void setExecutorService(ExecutorService executorService) {
+        this.executorService = executorService;
     }
 }
