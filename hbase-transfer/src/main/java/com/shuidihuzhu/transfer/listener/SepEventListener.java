@@ -3,9 +3,7 @@ package com.shuidihuzhu.transfer.listener;
 import com.google.common.collect.Maps;
 import com.shuidihuzhu.sep.EventListener;
 import com.shuidihuzhu.sep.SepEvent;
-import com.shuidihuzhu.transfer.model.Config;
 import com.shuidihuzhu.transfer.model.SinkRecord;
-import com.shuidihuzhu.transfer.sink.ESSink;
 import com.shuidihuzhu.transfer.sink.KafkaSink;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -29,8 +27,6 @@ public class SepEventListener implements EventListener {
 
     @Autowired
     private KafkaSink kafkaSink;
-    @Autowired
-    private ESSink eSSink;
 
     @Value("${hbase-transfer.hbase.table}")
     private String tableName;
@@ -75,23 +71,21 @@ public class SepEventListener implements EventListener {
 
             record.setKeyValues(keyValues);
 
-            if(Config.openKafka){
-                try {
-                    kafkaSink.sink(record);
-                } catch (Exception e) {
-                    logger.error("kafka sink error.",e);
-                    System.err.println("kafka error=" + SinkRecord.getText(record));
-                }
+            try {
+                kafkaSink.sink(record);
+            } catch (Exception e) {
+                logger.error("kafka sink error.",e);
+                System.err.println("kafka error=" + SinkRecord.getText(record));
             }
 
-            if(Config.openEs){
-                try {
-                    eSSink.sink(record);
-                } catch (Exception e) {
-                    logger.error("es sink error.",e);
-                    System.err.println("es error=" + SinkRecord.getText(record));
-                }
-            }
+//            if(Config.openEs){
+//                try {
+//                    eSSink.sink(record);
+//                } catch (Exception e) {
+//                    logger.error("es sink error.",e);
+//                    System.err.println("es error=" + SinkRecord.getText(record));
+//                }
+//            }
 
         }
     }

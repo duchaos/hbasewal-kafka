@@ -11,6 +11,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
@@ -25,13 +26,25 @@ import java.util.Properties;
  * Created by apple on 18/11/14.
  */
 @Service
-public class HKafkaConsumer {
+public class HKafkaConsumer implements InitializingBean {
     private Logger logger = LoggerFactory.getLogger(HKafkaConsumer.class);
     @Autowired
     private ESSink esSink;
 
     @Value("${hbase-transfer.kafka.bootstrap.server}")
     private String kafkaBroker;
+
+    @Value("${hbase-transfer.kafka.bootstrap.groupId}")
+    private String groupId;
+    @Value("${hbase-transfer.kafka.bootstrap.topic}")
+    private String topic;
+    @Value("${hbase-transfer.kafka.bootstrap.fromStart}")
+    private String fromStart;
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        consumer(groupId,topic,fromStart);
+    }
 
     public void consumer(String groupId,String topic,String fromStart){
         Properties props = new Properties();
