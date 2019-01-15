@@ -22,8 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import static sun.misc.PostVMInitHook.run;
-
 /**
  * Created by apple on 18/11/14.
  */
