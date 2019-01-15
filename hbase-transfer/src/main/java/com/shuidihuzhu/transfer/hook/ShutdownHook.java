@@ -34,9 +34,11 @@ public class ShutdownHook implements OrderedShutdown, ApplicationContextAware {
                 // 每200ms观测一次队列大小
                 if (null != queue && queue.size() > 0) {
                     for (int i=0; i<5; i++) {
-                        log.info("queue size=" + queue.size());
+                        System.out.println("queue size=" + queue.size());
                         Thread.sleep(200);
                     }
+                } else {
+                    System.out.println("queue size=0");
                 }
                 if (!executorService.isShutdown()) {
                     executorService.shutdown();
