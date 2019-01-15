@@ -163,7 +163,7 @@
     <!--</springProfile>-->
 
     <root level="INFO">
-        <springProfile name="info">
+        <springProfile name="debug">
             <appender-ref ref="CONSOLE"/>
         </springProfile>
         <appender-ref ref="error-log"/>

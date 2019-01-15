@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import static sun.misc.PostVMInitHook.run;
+
 /**
  * Created by apple on 18/11/14.
  */
@@ -43,7 +45,12 @@ public class HKafkaConsumer implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        consumer(groupId,topic,fromStart);
+        new Thread(new Runnable(){
+            @Override
+            public void run() {
+                consumer(groupId,topic,fromStart);
+            }
+        },"kafkaConsumerThread").start();
     }
 
     public void consumer(String groupId,String topic,String fromStart){
