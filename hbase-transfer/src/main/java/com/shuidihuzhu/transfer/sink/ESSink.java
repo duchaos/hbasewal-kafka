@@ -80,6 +80,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
     @Override
     public void sink(SinkRecord record) {
+        logger.info("record:{}",record.getRowKey());
         try{
             // 异步提交到线程池执行
             executorService.submit(new Runnable() {
