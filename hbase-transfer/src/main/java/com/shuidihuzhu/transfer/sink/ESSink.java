@@ -166,4 +166,12 @@ public class ESSink extends AbstractSink implements InitializingBean {
     public void setExecutorService(ExecutorService executorService) {
         this.executorService = executorService;
     }
+
+    public BlockingQueue<Runnable> getBlockingQueue() {
+        return blockingQueue;
+    }
+
+    public void setBlockingQueue(BlockingQueue<Runnable> blockingQueue) {
+        this.blockingQueue = blockingQueue;
+    }
 }
