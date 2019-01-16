@@ -15,51 +15,52 @@ import java.util.concurrent.ExecutorService;
  * Created by sunfu on 2019/1/15.
  */
 @Slf4j
-public class ShutdownHook implements OrderedShutdown, ApplicationContextAware {
+public class ShutdownHook {
+//public class ShutdownHook implements OrderedShutdown, ApplicationContextAware {
 
     private ApplicationContext applicationContext;
-
-    @Override
-    public void pause() throws InterruptedException {
-
-    }
-
-    @Override
-    public void shutdown(Integer delay) throws InterruptedException {
-        if (applicationContext.containsBean(ESSink.class.getName())) {
-            ESSink sink = applicationContext.getBean(ESSink.class);
-            if (null != sink) {
-                ExecutorService executorService = sink.getExecutorService();
-                BlockingQueue queue = sink.getBlockingQueue();
-                // 每200ms观测一次队列大小
-                if (null != queue && queue.size() > 0) {
-                    for (int i=0; i<5; i++) {
-                        System.out.println("shutdown queue size=" + queue.size());
-                        Thread.sleep(200);
-                    }
-                } else {
-                    System.out.println("shutdown queue size=0");
-                }
-                if (!executorService.isShutdown()) {
-                    executorService.shutdown();
-                } else {
-                    System.out.println("shutdown executorService already closed");
-                }
-            } else {
-                System.out.println("shutdown sink is null");
-            }
-        } else {
-            System.out.println("shutdown bean not exists");
-        }
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
-
-    @Override
-    public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE + 102;
-    }
+//
+//    @Override
+//    public void pause() throws InterruptedException {
+//
+//    }
+//
+//    @Override
+//    public void shutdown(Integer delay) throws InterruptedException {
+//        if (applicationContext.containsBean(ESSink.class.getName())) {
+//            ESSink sink = applicationContext.getBean(ESSink.class);
+//            if (null != sink) {
+//                ExecutorService executorService = sink.getExecutorService();
+//                BlockingQueue queue = sink.getBlockingQueue();
+//                // 每200ms观测一次队列大小
+//                if (null != queue && queue.size() > 0) {
+//                    for (int i=0; i<5; i++) {
+//                        System.out.println("shutdown queue size=" + queue.size());
+//                        Thread.sleep(200);
+//                    }
+//                } else {
+//                    System.out.println("shutdown queue size=0");
+//                }
+//                if (!executorService.isShutdown()) {
+//                    executorService.shutdown();
+//                } else {
+//                    System.out.println("shutdown executorService already closed");
+//                }
+//            } else {
+//                System.out.println("shutdown sink is null");
+//            }
+//        } else {
+//            System.out.println("shutdown bean not exists");
+//        }
+//    }
+//
+//    @Override
+//    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+//        this.applicationContext = applicationContext;
+//    }
+//
+//    @Override
+//    public int getOrder() {
+//        return Ordered.HIGHEST_PRECEDENCE + 102;
+//    }
 }

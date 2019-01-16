@@ -106,20 +106,27 @@ public class ESSink extends AbstractSink implements InitializingBean {
 //        logger.info("record:{}",record.getRowKey());
         try{
             // 异步提交到线程池执行
-            executorService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        JestResult updateResult = batchUpdateAction(recordList);
-                        System.out.println("========="+JSON.toJSONString(updateResult));
+//            executorService.submit(new Runnable() {
+//                @Override
+//                public void run() {
+//                    try {
+//                        JestResult updateResult = batchUpdateAction(recordList);
+//                        System.out.println("========="+JSON.toJSONString(updateResult));
+////                        if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
+////                            insertAction(record);
+////                        }
+//                    } catch (Exception e) {
+//                        handleBatchErrorRecord(recordList);
+//                    }
+//                }
+//            });
+
+
+            JestResult updateResult = batchUpdateAction(recordList);
+            System.out.println("========="+JSON.toJSONString(updateResult));
 //                        if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
 //                            insertAction(record);
 //                        }
-                    } catch (Exception e) {
-                        handleBatchErrorRecord(recordList);
-                    }
-                }
-            });
         }catch (Exception e){
             handleBatchErrorRecord(recordList);
         }
