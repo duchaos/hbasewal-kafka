@@ -123,7 +123,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
 
             JestResult updateResult = batchUpdateAction(recordList);
-            System.out.println("========="+JSON.toJSONString(updateResult));
+//            System.out.println("========="+JSON.toJSONString(updateResult));
 //                        if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
 //                            insertAction(record);
 //                        }
