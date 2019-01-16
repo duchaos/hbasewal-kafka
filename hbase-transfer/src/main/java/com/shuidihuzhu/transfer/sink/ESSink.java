@@ -128,6 +128,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 //                            insertAction(record);
 //                        }
         }catch (Exception e){
+            e.printStackTrace();
             handleBatchErrorRecord(recordList);
         }
     }
