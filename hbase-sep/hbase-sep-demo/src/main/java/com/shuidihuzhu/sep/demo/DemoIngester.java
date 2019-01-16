@@ -56,7 +56,7 @@ public class DemoIngester {
 
         ObjectMapper jsonMapper = new ObjectMapper();
 
-        Table htable = ConnectionFactory.createConnection(conf).getTable(TableName.valueOf("sep-user-demo"));
+        Table htable = ConnectionFactory.createConnection(conf).getTable(TableName.valueOf("sdhz_user_info_realtime"));
 
         while (true) {
             byte[] rowkey = Bytes.toBytes(UUID.randomUUID().toString());

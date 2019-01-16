@@ -111,9 +111,11 @@ public class HKafkaConsumer implements InitializingBean {
     }
 
     public void toEs(List<String> kafkaDataList){
+        List<SinkRecord> recordList = Lists.newArrayList();
         for(String hbaseRecord : kafkaDataList){
-            esSink.sink(JSON.parseObject(hbaseRecord,SinkRecord.class));
+            recordList.add(JSON.parseObject(hbaseRecord,SinkRecord.class));
         }
+        esSink.batchSink(recordList);
     }
 
 }

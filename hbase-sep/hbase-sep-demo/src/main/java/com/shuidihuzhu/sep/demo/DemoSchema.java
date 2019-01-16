@@ -33,10 +33,10 @@ public class DemoSchema {
 
     public static void createSchema(Configuration hbaseConf) throws IOException {
         Admin admin = ConnectionFactory.createConnection(hbaseConf).getAdmin();
-        if (!admin.tableExists(TableName.valueOf("sep-user-demo"))) {
-            HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf("sep-user-demo"));
+        if (!admin.tableExists(TableName.valueOf("sdhz_user_info_realtime"))) {
+            HTableDescriptor tableDescriptor = new HTableDescriptor(TableName.valueOf("sdhz_user_info_realtime"));
 
-            HColumnDescriptor infoCf = new HColumnDescriptor("info");
+            HColumnDescriptor infoCf = new HColumnDescriptor("data");
             infoCf.setScope(1);
             tableDescriptor.addFamily(infoCf);
 

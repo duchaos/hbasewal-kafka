@@ -14,6 +14,7 @@ import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.Bulk;
 import io.searchbox.core.Index;
+import io.searchbox.core.Update;
 import io.searchbox.core.UpdateByQuery;
 import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -23,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -101,6 +101,30 @@ public class ESSink extends AbstractSink implements InitializingBean {
         }
     }
 
+    @Override
+    public void batchSink(List<SinkRecord> recordList) {
+//        logger.info("record:{}",record.getRowKey());
+        try{
+            // 异步提交到线程池执行
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        JestResult updateResult = batchUpdateAction(recordList);
+                        System.out.println("========="+JSON.toJSONString(updateResult));
+//                        if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
+//                            insertAction(record);
+//                        }
+                    } catch (Exception e) {
+                        handleBatchErrorRecord(recordList);
+                    }
+                }
+            });
+        }catch (Exception e){
+            handleBatchErrorRecord(recordList);
+        }
+    }
+
     public JestResult updateAction(SinkRecord record) throws Exception{
         record.getKeyValues().put("id",record.getRowKey());
         UpdateByQuery updateByQuery = new UpdateByQuery.Builder(buildSearch(record))
@@ -125,6 +149,26 @@ public class ESSink extends AbstractSink implements InitializingBean {
         if(!result.isSucceeded()){
             throw new Exception("execute es error.msg="+result.getErrorMessage());
         }
+    }
+
+    public JestResult batchUpdateAction(List<SinkRecord> recordList) throws Exception{
+        Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
+        Update update = null;
+        for(SinkRecord record : recordList){
+            if(!StringUtils.isEmpty(record.getRowKey())){
+                Map docMap = Maps.newHashMap();
+                docMap.put("doc",record.getKeyValues());
+                update = new Update.Builder(JSON.toJSONString(docMap)).id(record.getRowKey()).build();
+            }else{
+                throw new Exception("rowkey is null");
+            }
+            bulkBuilder.addAction(update).build();
+        }
+        JestResult result = client.execute(bulkBuilder.build());
+        if(!result.isSucceeded()){
+            throw new Exception("execute es error.msg="+result.getErrorMessage());
+        }
+        return result;
     }
 
     private String buildSearch(SinkRecord record) {
@@ -153,11 +197,11 @@ public class ESSink extends AbstractSink implements InitializingBean {
         scriptObject.put("script", scriptMap);
         return scriptObject.toString();
     }
-
-    @Override
-    public void batchSink(List<SinkRecord> records) {
-
-    }
+//
+//    @Override
+//    public void batchSink(List<SinkRecord> records) {
+//
+//    }
 
     public ExecutorService getExecutorService() {
         return executorService;
