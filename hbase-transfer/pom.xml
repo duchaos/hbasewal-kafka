@@ -23,7 +23,7 @@
   <parent>
     <groupId>com.shuidihuzhu.datawarehouse</groupId>
     <artifactId>hbase-transfer-parent</artifactId>
-    <version>1.2</version>
+    <version>1.3-SNAPSHOT</version>
   </parent>
 
   <dependencies>
@@ -31,7 +31,7 @@
     <dependency>
       <groupId>com.shuidihuzhu.datawarehouse</groupId>
       <artifactId>hbase-sep-impl</artifactId>
-      <version>1.2</version>
+      <version>1.3-SNAPSHOT</version>
       <exclusions>
         <exclusion>
           <artifactId>servlet-api</artifactId>
