@@ -1,12 +1,15 @@
 package com.shuidihuzhu.transfer.sink;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
@@ -128,7 +131,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 //                            insertAction(record);
 //                        }
         }catch (Exception e){
-            e.printStackTrace();
+            logger.error("into es error.",e);
             handleBatchErrorRecord(recordList);
         }
     }
@@ -159,9 +162,31 @@ public class ESSink extends AbstractSink implements InitializingBean {
         }
     }
 
+    public JestResult batchInsertAction(List<SinkRecord> recordList) throws Exception{
+        Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
+        Index index = null;
+        for(SinkRecord record : recordList){
+            if(!StringUtils.isEmpty(record.getRowKey())){
+                index = new Index.Builder(record.getKeyValues()).id(record.getRowKey()).build();
+            }else{
+                index = new Index.Builder(record.getKeyValues()).build();
+            }
+            bulkBuilder.addAction(index).build();
+        }
+
+        JestResult result = client.execute(bulkBuilder.build());
+        if(!result.isSucceeded()){
+            throw new Exception("execute es error.msg="+result.getErrorMessage());
+        }
+        return result;
+    }
+
     public JestResult batchUpdateAction(List<SinkRecord> recordList) throws Exception{
         Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
         Update update = null;
+
+        Map<String,List<SinkRecord>> recordMap = Maps.newHashMap();
+        List<SinkRecord> tmpRecordList = null;
         for(SinkRecord record : recordList){
             if(!StringUtils.isEmpty(record.getRowKey())){
                 Map docMap = Maps.newHashMap();
@@ -171,11 +196,33 @@ public class ESSink extends AbstractSink implements InitializingBean {
                 throw new Exception("rowkey is null");
             }
             bulkBuilder.addAction(update).build();
+
+            if(recordMap.containsKey(record.getRowKey())){
+                recordMap.get(record.getRowKey()).add(record);
+            }else{
+                tmpRecordList = Lists.newArrayList();
+                tmpRecordList.add(record);
+                recordMap.put(record.getRowKey(),tmpRecordList);
+            }
         }
         JestResult result = client.execute(bulkBuilder.build());
         if(!result.isSucceeded()){
-            throw new Exception("execute es error.msg="+result.getErrorMessage());
+            JsonArray jsonArray = result.getJsonObject().get("items").getAsJsonArray();
+            List<SinkRecord> insertRecordList = Lists.newArrayList();
+            for(int i=0;i<jsonArray.size();i++){
+                String status = jsonArray.get(i).getAsJsonObject().getAsJsonObject("update").get("status").getAsString();
+                if("404".equals(status)){
+                    String rowkey = jsonArray.get(i).getAsJsonObject().getAsJsonObject("update").get("_id").getAsString();
+                    insertRecordList.addAll(recordMap.get(rowkey));
+                }
+            }
+            result = batchInsertAction(insertRecordList);
+
+            if(!result.isSucceeded()){
+                throw new Exception("execute es error.msg="+result.getErrorMessage());
+            }
         }
+
         return result;
     }
 
