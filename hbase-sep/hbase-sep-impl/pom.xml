@@ -19,13 +19,13 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.shuidihuzhu.datawarehouse</groupId>
   <artifactId>hbase-sep-impl</artifactId>
-  <version>1.7-SNAPSHOT</version>
+  <version>1.7</version>
   <name>HBase Side-Effect Processor: impl</name>
 
   <parent>
     <groupId>com.shuidihuzhu.datawarehouse</groupId>
     <artifactId>hbase-sep</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.7</version>
   </parent>
 
   <build>
@@ -46,7 +46,7 @@
     <dependency>
       <groupId>com.shuidihuzhu.datawarehouse</groupId>
       <artifactId>hbase-sep-api</artifactId>
-      <version>1.7-SNAPSHOT</version>
+      <version>1.7</version>
     </dependency>
 
     <dependency>
