@@ -46,6 +46,9 @@ public class SepEventListener implements EventListener {
             Map<String, Object> keyValues = Maps.newHashMap();
             for (Cell cell : sepEvent.getKeyValues()) {
                 String rowKey = Bytes.toString(CellUtil.cloneRow(cell));
+                if(rowKey.contains(":")){
+                    rowKey = rowKey.split(":")[1];
+                }
                 long timestamp = cell.getTimestamp();
                 String family = Bytes.toString(CellUtil.cloneFamily(cell));
                 String qualifier  = Bytes.toString(CellUtil.cloneQualifier(cell));

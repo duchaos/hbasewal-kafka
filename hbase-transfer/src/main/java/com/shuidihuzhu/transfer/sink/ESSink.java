@@ -150,6 +150,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
         Index index = null;
         if(!StringUtils.isEmpty(record.getRowKey())){
+            logger.info("hbase new userId={}",record.getRowKey());
             index = new Index.Builder(record.getKeyValues()).id(record.getRowKey()).build();
         }else{
             index = new Index.Builder(record.getKeyValues()).build();
@@ -167,6 +168,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         Index index = null;
         for(SinkRecord record : recordList){
             if(!StringUtils.isEmpty(record.getRowKey())){
+                logger.info("hbase new userId={}",record.getRowKey());
                 index = new Index.Builder(record.getKeyValues()).id(record.getRowKey()).build();
             }else{
                 index = new Index.Builder(record.getKeyValues()).build();
@@ -189,6 +191,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         List<SinkRecord> tmpRecordList = null;
         for(SinkRecord record : recordList){
             if(!StringUtils.isEmpty(record.getRowKey())){
+                logger.info("update hbase userId={}",record.getRowKey());
                 Map docMap = Maps.newHashMap();
                 docMap.put("doc",record.getKeyValues());
                 update = new Update.Builder(JSON.toJSONString(docMap)).id(record.getRowKey()).build();
