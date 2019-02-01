@@ -44,8 +44,9 @@ public class SepEventListener implements EventListener {
             SinkRecord record = new SinkRecord();
 
             Map<String, Object> keyValues = Maps.newHashMap();
+            String rowKey = null;
             for (Cell cell : sepEvent.getKeyValues()) {
-                String rowKey = Bytes.toString(CellUtil.cloneRow(cell));
+                rowKey = Bytes.toString(CellUtil.cloneRow(cell));
                 if(rowKey.contains(":")){
                     rowKey = rowKey.split(":")[1];
                 }
@@ -71,7 +72,7 @@ public class SepEventListener implements EventListener {
                 record.setColumn(column);
                 keyValues.put(column, value);
             }
-
+            keyValues.put("id",rowKey);
             record.setKeyValues(keyValues);
 
             try {

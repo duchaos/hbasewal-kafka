@@ -120,6 +120,7 @@ public class HKafkaConsumer implements InitializingBean {
             if(rowKey.contains(":")){
                 rowKey = rowKey.split(":")[1];
             }
+            sinkRecordObj.getKeyValues().put("id",rowKey);
             sinkRecordObj.setRowKey(rowKey);
             recordList.add(sinkRecordObj);
         }
