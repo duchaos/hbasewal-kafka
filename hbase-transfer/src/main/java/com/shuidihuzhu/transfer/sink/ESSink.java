@@ -54,6 +54,11 @@ public class ESSink extends AbstractSink implements InitializingBean {
     private String indexType;
     @Value("${hbase-transfer.elasticsearch.url}")
     private String esUrl;
+    @Value("${hbase-transfer.elasticsearch.username}")
+    private String username;
+    @Value("${hbase-transfer.elasticsearch.password}")
+    private String password;
+
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -65,6 +70,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
                 .create();
         factory.setHttpClientConfig(new HttpClientConfig
                 .Builder(esUrl)
+                .defaultCredentials(username,password)
                 .multiThreaded(true)
                 .defaultMaxTotalConnectionPerRoute(2)
                 .connTimeout(3600000)
