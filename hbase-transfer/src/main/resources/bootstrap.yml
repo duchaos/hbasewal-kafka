@@ -8,7 +8,7 @@ spring:
     config:
       enabled: true
       uri: http://configserver.shuiditech.com
-      label: develop
+      label: localhost
 logging:
   path: ${app.log.path:${user.home}/logs}
   pattern:
