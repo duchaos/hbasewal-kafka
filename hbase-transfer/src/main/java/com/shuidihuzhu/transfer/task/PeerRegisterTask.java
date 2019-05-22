@@ -33,7 +33,7 @@ public class PeerRegisterTask implements CommandLineRunner {
 //        subscriptionName = "logger";
 
         //TODO: online
-//        subscriptionName = "logger20190517";
+        subscriptionName = "logger20190517";
 
         addPeer();
     }
