@@ -15,10 +15,7 @@ import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
-import io.searchbox.core.Bulk;
-import io.searchbox.core.Index;
-import io.searchbox.core.Update;
-import io.searchbox.core.UpdateByQuery;
+import io.searchbox.core.*;
 import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -29,8 +26,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -38,11 +34,6 @@ import java.util.concurrent.*;
  */
 @Service
 public class ESSink extends AbstractSink implements InitializingBean {
-
-    private ThreadFactory threadFactory;
-    private BlockingQueue<Runnable> blockingQueue;
-    private RejectedExecutionHandler rejectedExecutionHandler;
-    private ExecutorService executorService;
 
     private Logger logger = LoggerFactory.getLogger(ESSink.class);
 
@@ -80,111 +71,50 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
         client = factory.getObject();
 
-        threadFactory = new ThreadFactoryBuilder().setNameFormat("ThreadEventHandler").build();
-        blockingQueue = Queues.newLinkedBlockingQueue(50);
-        rejectedExecutionHandler = new ThreadPoolExecutor.CallerRunsPolicy();
-        executorService = new ThreadPoolExecutor(50, 50, 1L, TimeUnit.SECONDS, blockingQueue, threadFactory, rejectedExecutionHandler);
+        System.err.println("indexName = " + this.indexName);
+        //TODO: Test38
+//        indexName = "sdhz_user_info_realtime_table3";
 
-    }
-
-    @Override
-    public void sink(SinkRecord record) {
-        logger.info("record:{}",record.getRowKey());
-        try{
-            // 异步提交到线程池执行
-            executorService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        JestResult updateResult = updateAction(record);
-                        if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
-                            insertAction(record);
-                        }
-                    } catch (Exception e) {
-                        handleErrorRecord(record);
-                    }
-                }
-            });
-        }catch (Exception e){
-            handleErrorRecord(record);
-        }
+        //TODO: online
+//        indexName = "sdhz_user_info_realtime_table7";
     }
 
     @Override
     public void batchSink(List<SinkRecord> recordList) {
-//        logger.info("record:{}",record.getRowKey());
         try{
-            // 异步提交到线程池执行
-//            executorService.submit(new Runnable() {
-//                @Override
-//                public void run() {
-//                    try {
-//                        JestResult updateResult = batchUpdateAction(recordList);
-//                        System.out.println("========="+JSON.toJSONString(updateResult));
-////                        if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
-////                            insertAction(record);
-////                        }
-//                    } catch (Exception e) {
-//                        handleBatchErrorRecord(recordList);
-//                    }
-//                }
-//            });
-
-
-            JestResult updateResult = batchUpdateAction(recordList);
-//            System.out.println("========="+JSON.toJSONString(updateResult));
-//                        if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
-//                            insertAction(record);
-//                        }
+            batchUpdateAction(recordList);
         }catch (Exception e){
             logger.error("into es error.",e);
             handleBatchErrorRecord(recordList);
         }
     }
 
-    public JestResult updateAction(SinkRecord record) throws Exception{
-        record.getKeyValues().put("id",record.getRowKey());
-        UpdateByQuery updateByQuery = new UpdateByQuery.Builder(buildSearch(record))
-                .addIndex(indexName)
-                .addType(indexType)
-                .build();
+    private JestResult batchInsertAction(List<SinkRecord> recordList) throws Exception {
+//        System.out.println("batchInsertAction ===> start...  " + recordList.size());
 
-        return client.execute(updateByQuery);
-    }
-
-    public void insertAction(SinkRecord record) throws Exception{
-        Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
         Index index = null;
-        if(!StringUtils.isEmpty(record.getRowKey())){
-            logger.info("hbase new userId={}",record.getRowKey());
-            index = new Index.Builder(record.getKeyValues()).id(record.getRowKey()).build();
-        }else{
-            index = new Index.Builder(record.getKeyValues()).build();
-        }
-        bulkBuilder.addAction(index).build();
+        Map<String, String> idAndRowKeyMap = new HashMap();
+        for (SinkRecord record : recordList) {
+            String id = (String) record.getKeyValues().get("id");
+            if (!StringUtils.isEmpty(id)) {
+                logger.info("Insert rowkey = " + record.getRowKey() + ", column num: " + (record.getKeyValues().size() -1));
+                idAndRowKeyMap.put(id,record.getRowKey());
 
-        JestResult result = client.execute(bulkBuilder.build());
-        if(!result.isSucceeded()){
-            throw new Exception("execute es error.msg="+result.getErrorMessage());
-        }
-    }
-
-    public JestResult batchInsertAction(List<SinkRecord> recordList) throws Exception{
-        Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
-        Index index = null;
-        for(SinkRecord record : recordList){
-            if(!StringUtils.isEmpty(record.getRowKey())){
-                logger.info("hbase new userId={}",record.getRowKey());
-                index = new Index.Builder(record.getKeyValues()).id(record.getRowKey()).build();
-            }else{
+                index = new Index.Builder(record.getKeyValues()).id(id).build();
+            } else {
                 index = new Index.Builder(record.getKeyValues()).build();
             }
             bulkBuilder.addAction(index).build();
         }
 
         JestResult result = client.execute(bulkBuilder.build());
-        if(!result.isSucceeded()){
-            throw new Exception("execute es error.msg="+result.getErrorMessage());
+        if (!result.isSucceeded()) {
+            List<BulkResult.BulkResultItem> errItems = ((BulkResult) result).getFailedItems();
+            for(BulkResult.BulkResultItem item : errItems){
+                String logInfo = "batchInsertAction ===> Hbase rowkey=" + idAndRowKeyMap.get(item.id) +" Error item = [id : "  + item.id + ", index : " + item.index + "type : " + item.type + ",operation :" + item.operation + ",status :"  + item.status + ",version :"  + item.version + ",error :"   + item.error + ",errorType :" + item.errorType + ",errorReason :"+ item.errorReason  + "]";
+                logger.error(logInfo);
+            }
         }
         return result;
     }
@@ -193,93 +123,61 @@ public class ESSink extends AbstractSink implements InitializingBean {
         Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
         Update update = null;
 
-        Map<String,List<SinkRecord>> recordMap = Maps.newHashMap();
-        List<SinkRecord> tmpRecordList = null;
+        Map<String,SinkRecord> recordMap = new HashMap();
         for(SinkRecord record : recordList){
-            if(!StringUtils.isEmpty(record.getRowKey())){
-                logger.info("update hbase userId={}",record.getRowKey());
+            Object idObj = record.getKeyValues().get("id");
+            String id = null;
+            if(idObj != null ){
+                id = String.valueOf(idObj);
+            }else{
+                throw new Exception("rowkey is null");
+            }
+
+            if( !StringUtils.isEmpty(id)){
+//                logger.info("Update rowkey = " + record.getRowKey() + ", column num: " + (record.getKeyValues().size() -1));
                 Map docMap = Maps.newHashMap();
                 docMap.put("doc",record.getKeyValues());
-                update = new Update.Builder(JSON.toJSONString(docMap)).id(record.getRowKey()).build();
+                update = new Update.Builder(JSON.toJSONString(docMap)).id(id).setParameter("retry_on_conflict",5).build();
             }else{
                 throw new Exception("rowkey is null");
             }
             bulkBuilder.addAction(update).build();
 
-            if(recordMap.containsKey(record.getRowKey())){
-                recordMap.get(record.getRowKey()).add(record);
-            }else{
-                tmpRecordList = Lists.newArrayList();
-                tmpRecordList.add(record);
-                recordMap.put(record.getRowKey(),tmpRecordList);
+            if (recordMap.containsKey(id)) {
+                recordMap.get(id).getKeyValues().putAll(record.getKeyValues());
+            } else {
+                recordMap.put(id, record);
             }
         }
         JestResult result = client.execute(bulkBuilder.build());
-        if(!result.isSucceeded()){
-            JsonArray jsonArray = result.getJsonObject().get("items").getAsJsonArray();
-            List<SinkRecord> insertRecordList = Lists.newArrayList();
-            for(int i=0;i<jsonArray.size();i++){
-                String status = jsonArray.get(i).getAsJsonObject().getAsJsonObject("update").get("status").getAsString();
-                if("404".equals(status)){
-                    String rowkey = jsonArray.get(i).getAsJsonObject().getAsJsonObject("update").get("_id").getAsString();
-                    insertRecordList.addAll(recordMap.get(rowkey));
+        if (!result.isSucceeded()) {
+            List<BulkResult.BulkResultItem> errItems = ((BulkResult) result).getFailedItems();
+            List<SinkRecord> insertRecordList = new ArrayList();
+            Set<String> idSet = new HashSet();
+            for(BulkResult.BulkResultItem item : errItems) {
+
+                String id = item.id;
+                if (item.status == 404) {
+                    if(idSet.contains(id) == false) {
+                        //索引不存在,就插入
+                        insertRecordList.add(recordMap.get(id));
+                        idSet.add(id);
+                    }
+                }else {
+                    String logInfo = "batchUpdateAction ===> Hbase rowkey=" + recordMap.get(id).getRowKey() + " Error item = [id : " + item.id + ", index : " + item.index + "type : " + item.type + ",operation :" + item.operation + ",status :" + item.status + ",version :" + item.version + ",error :" + item.error + ",errorType :" + item.errorType + ",errorReason :" + item.errorReason + "]";
+                    logger.error(logInfo);
                 }
             }
-            result = batchInsertAction(insertRecordList);
 
-            if(!result.isSucceeded()){
-                throw new Exception("execute es error.msg="+result.getErrorMessage());
+            if (!insertRecordList.isEmpty()) {
+                result = batchInsertAction(insertRecordList);
+
+                if (!result.isSucceeded()) {
+                    throw new Exception("execute es error.msg=" + result.getErrorMessage());
+                }
             }
         }
 
         return result;
-    }
-
-    private String buildSearch(SinkRecord record) {
-        //指定查询的库表
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-
-        if (record != null) {
-            //构建查询条件必须嵌入filter中！
-            BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-            if(!StringUtils.isEmpty(record.getRowKey())){
-                boolQueryBuilder.must(QueryBuilders.termQuery("id.keyword",record.getRowKey()));
-            }else{
-                throw new RuntimeException("binlog dont contain id");
-            }
-
-            searchSourceBuilder.query(boolQueryBuilder);
-        }
-        JSONObject scriptObject = JSON.parseObject(searchSourceBuilder.toString());
-        Map<String,String> scriptMap = Maps.newHashMap();
-        String script = "";
-        for(Map.Entry<String,Object> tmp : record.getKeyValues().entrySet()){
-            script = script+"ctx._source."+tmp.getKey()+"='"+tmp.getValue()+"';";
-        }
-        scriptMap.put("source",script);
-        scriptMap.put("lang","painless");
-        scriptObject.put("script", scriptMap);
-        return scriptObject.toString();
-    }
-//
-//    @Override
-//    public void batchSink(List<SinkRecord> records) {
-//
-//    }
-
-    public ExecutorService getExecutorService() {
-        return executorService;
-    }
-
-    public void setExecutorService(ExecutorService executorService) {
-        this.executorService = executorService;
-    }
-
-    public BlockingQueue<Runnable> getBlockingQueue() {
-        return blockingQueue;
-    }
-
-    public void setBlockingQueue(BlockingQueue<Runnable> blockingQueue) {
-        this.blockingQueue = blockingQueue;
     }
 }

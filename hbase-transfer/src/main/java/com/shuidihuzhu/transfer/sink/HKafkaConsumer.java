@@ -43,15 +43,23 @@ public class HKafkaConsumer implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        new Thread(new Runnable(){
+        new Thread(new Runnable() {
             @Override
             public void run() {
-                consumer(groupId,topic,fromStart);
+                consumer(groupId, topic, fromStart);
             }
-        },"kafkaConsumerThread").start();
+        }, "kafkaConsumerThread").start();
     }
 
-    public void consumer(String groupId,String topic,String fromStart){
+    public void consumer(String groupId, String topic, String fromStart) {
+//        //TODO: Test38
+//        groupId = "hbase-tranfer_kafka_consumer_localtest";
+//        topic = "hbase-tranfer-localtest";
+
+        //TODO: online
+//        groupId = "hbase-tranfer_kafka_consumer_20190517";
+//        topic = "hbase-tranfer-20190517";
+
         Properties props = new Properties();
         props.put("bootstrap.servers", kafkaBroker);
         props.put("group.id", groupId);
@@ -78,7 +86,6 @@ public class HKafkaConsumer implements InitializingBean {
             }
         });
 
-        List<String> kafkaDataList = null;
         boolean dualFlag;
         while (true) {
             ConsumerRecords<String, String> records = null;
@@ -87,21 +94,22 @@ public class HKafkaConsumer implements InitializingBean {
             }catch (Exception e){
                 logger.error("kafka consumer error.",e);
             }
-            if(records.count()>0){
-                kafkaDataList = Lists.newArrayList();
+            if (records.count() > 0) {
+                List<SinkRecord> recordList = Lists.newArrayList();
                 for (TopicPartition partition : records.partitions()) {
                     List<ConsumerRecord<String, String>> partitionRecords = records.records(partition);
-                    try{
+                    try {
                         for (ConsumerRecord<String, String> record : partitionRecords) {
-                            kafkaDataList.add(record.value());
+                            SinkRecord sinkRecordObj = JSON.parseObject(record.value(), SinkRecord.class);
+                            recordList.add(sinkRecordObj);
                         }
-                        toEs(kafkaDataList);
+                        esSink.batchSink(recordList);
                         dualFlag = true;
-                    }catch (Exception e){
-                        logger.error("handler error.",e);
+                    } catch (Exception e) {
+                        logger.error("handler error.", e);
                         dualFlag = false;
                     }
-                    if(dualFlag){
+                    if (dualFlag) {
                         long lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset();
                         consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)));
                     }
@@ -109,22 +117,4 @@ public class HKafkaConsumer implements InitializingBean {
             }
         }
     }
-
-    public void toEs(List<String> kafkaDataList){
-        List<SinkRecord> recordList = Lists.newArrayList();
-        SinkRecord sinkRecordObj = null;
-        String rowKey = null;
-        for(String hbaseRecord : kafkaDataList){
-            sinkRecordObj = JSON.parseObject(hbaseRecord,SinkRecord.class);
-            rowKey = sinkRecordObj.getRowKey();
-            if(rowKey.contains(":")){
-                rowKey = rowKey.split(":")[1];
-            }
-            sinkRecordObj.getKeyValues().put("id",rowKey);
-            sinkRecordObj.setRowKey(rowKey);
-            recordList.add(sinkRecordObj);
-        }
-        esSink.batchSink(recordList);
-    }
-
 }

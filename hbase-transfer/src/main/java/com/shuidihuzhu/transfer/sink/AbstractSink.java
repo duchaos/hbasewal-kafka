@@ -9,11 +9,9 @@ import java.util.List;
  */
 public abstract class AbstractSink {
 
-    public abstract void sink(SinkRecord record);
+    public  void sink(SinkRecord record){};
 
-    public abstract void batchSink(List<SinkRecord> records);
-
-//    public abstract void sink(List<SinkRecord> recordList);
+    public  void batchSink(List<SinkRecord> records){};
 
     public void handleErrorRecord(SinkRecord record) {
         throw new RuntimeException("transfer error");
@@ -24,8 +22,4 @@ public abstract class AbstractSink {
             handleErrorRecord(record);
         }
     }
-
-
-
-
 }

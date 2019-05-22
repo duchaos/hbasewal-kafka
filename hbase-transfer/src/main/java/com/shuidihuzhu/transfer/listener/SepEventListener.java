@@ -33,8 +33,6 @@ public class SepEventListener implements EventListener {
 
     @Override
     public void processEvents(List<SepEvent> sepEvents) {
-//        logger.debug("Config.openKafka={}",Config.openKafka);
-//        logger.debug("Config.openEs={}",Config.openEs);
         for (SepEvent sepEvent : sepEvents) {
             String table = Bytes.toString(sepEvent.getTable());
             if(!table.equals(tableName)){
@@ -45,11 +43,15 @@ public class SepEventListener implements EventListener {
 
             Map<String, Object> keyValues = Maps.newHashMap();
             String rowKey = null;
+            String id = null;
             for (Cell cell : sepEvent.getKeyValues()) {
                 rowKey = Bytes.toString(CellUtil.cloneRow(cell));
                 if(rowKey.contains(":")){
-                    rowKey = rowKey.split(":")[1];
+                    id = rowKey.split(":")[1];
+                }else{
+                    id = rowKey;
                 }
+
                 long timestamp = cell.getTimestamp();
                 String family = Bytes.toString(CellUtil.cloneFamily(cell));
                 String qualifier  = Bytes.toString(CellUtil.cloneQualifier(cell));
@@ -69,10 +71,15 @@ public class SepEventListener implements EventListener {
                 } else {
                     column = qualifier;
                 }
+
+                if(column.contains(".")){
+                    column = column.replace(".","_");
+                }
+
                 record.setColumn(column);
                 keyValues.put(column, value);
             }
-            keyValues.put("id",rowKey);
+            keyValues.put("id",id);
             record.setKeyValues(keyValues);
 
             try {
@@ -81,16 +88,6 @@ public class SepEventListener implements EventListener {
                 logger.error("kafka sink error.",e);
                 System.err.println("kafka error=" + SinkRecord.getText(record));
             }
-
-//            if(Config.openEs){
-//                try {
-//                    eSSink.sink(record);
-//                } catch (Exception e) {
-//                    logger.error("es sink error.",e);
-//                    System.err.println("es error=" + SinkRecord.getText(record));
-//                }
-//            }
-
         }
     }
 

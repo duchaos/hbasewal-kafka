@@ -3,6 +3,7 @@ package com.shuidihuzhu.transfer.sink;
 import com.alibaba.fastjson.JSON;
 import com.shuidihuzhu.transfer.listener.SepEventListener;
 import com.shuidihuzhu.transfer.model.SinkRecord;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.producer.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,38 +34,43 @@ public class KafkaSink extends AbstractSink {
         props.put("bootstrap.servers", bootstrap);
         props.put("acks", "1");
         props.put("retries", 3);
+        props.put("max.request.size", 5242880);//5m
+        //设置压缩类型
+        String compType = "lz4";
+        if(StringUtils.isNotBlank(compType)) {
+            props.put("compression.type", compType);
+        }
         props.put("batch.size", 16384);
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         procuder = new KafkaProducer<String, String>(props);
 
+        //TODO: Test38
+//        topic = "hbase-tranfer-localtest";
 
+        //TODO: online
+//        topic = "hbase-tranfer-20190517";
     }
 
     @Override
     public void sink(SinkRecord record) {
         try {
-            ProducerRecord<String,String> item = new ProducerRecord<String, String>(topic, JSON.toJSONString(record));
+            ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic, JSON.toJSONString(record));
             procuder.send(item, new Callback() {
                 @Override
-                public void onCompletion(RecordMetadata metadata, Exception exception) {
-//                    System.out.println("message send to partition=" + metadata.partition() + ", offset=" + metadata.offset() + ", content=" + SinkRecord.getText(record));
+                public void onCompletion(RecordMetadata metadata, Exception e) {
+//                    if (metadata != null) {
+//                        logger.debug("[发送成功] --- topic= " + metadata.topic() + "，partiton: " + metadata.partition() + " offset: " + metadata.offset() + ", content=" + SinkRecord.getText(record));
+//                    }
+
+                    if (e != null) {
+                        logger.error("[发送失败] --- topic= " + topic + ",失败原因：" + e.getMessage());
+                    }
                 }
             });
         } catch (Exception e) {
-            logger.error("kafka send error.",e);
+            logger.error("kafka send error.", e);
             handleErrorRecord(record);
         }
     }
-
-    public void consumer(){
-
-    }
-
-    @Override
-    public void batchSink(List<SinkRecord> records) {
-
-    }
-
-
 }

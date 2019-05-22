@@ -34,6 +34,14 @@ public class TransferTask implements CommandLineRunner{
 
     @Override
     public void run(String... strings) throws Exception {
+        //TODO: Test38
+//        String test_zk = "10.100.4.2,10.100.4.3,10.100.4.4";
+//        hbaseZookeeper = test_zk;
+//        sepZookeeper = test_zk;
+//        subscriptionName = "logger";
+
+        //TODO: online
+//        subscriptionName = "logger20190517";
 
         try {
             // 连接zk
