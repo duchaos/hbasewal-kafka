@@ -46,7 +46,8 @@ public class HKafkaConsumer implements InitializingBean {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                consumer(groupId, topic, fromStart);
+                //TODO: 初始化，暂停消费kafka
+//                consumer(groupId, topic, fromStart);
             }
         }, "kafkaConsumerThread").start();
     }
