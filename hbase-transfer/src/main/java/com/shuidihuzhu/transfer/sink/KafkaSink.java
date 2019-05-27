@@ -49,7 +49,7 @@ public class KafkaSink extends AbstractSink {
 //        topic = "hbase-tranfer-localtest";
 
         //TODO: online
-        topic = "hbase-tranfer-20190517";
+        topic = "hbase-tranfer-20190527";
     }
 
     @Override

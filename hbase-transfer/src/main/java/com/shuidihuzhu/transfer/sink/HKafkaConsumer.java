@@ -59,7 +59,7 @@ public class HKafkaConsumer implements InitializingBean {
 
         //TODO: online
         groupId = "hbase-tranfer_kafka_consumer_20190517";
-        topic = "hbase-tranfer-20190517";
+        topic = "hbase-tranfer-20190527";
 
         Properties props = new Properties();
         props.put("bootstrap.servers", kafkaBroker);
