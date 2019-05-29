@@ -165,7 +165,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
             for(BulkResult.BulkResultItem item : errItems) {
 
                 String id = item.id;
-                if (item.status == 404 || item.status == 429  || item.status == 503  || item.status == 500 ) {
+                if (item.status == 404 || item.status == 429  || item.status == 503  || item.status == 500 || item.status == 409   ) {
                     //索引不存在,拒绝，node异常，重新执行
                     insertRecordMap.put(id, recordMap.get(id));
                 }else {
