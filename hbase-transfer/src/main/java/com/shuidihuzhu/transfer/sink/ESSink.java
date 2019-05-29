@@ -1,15 +1,9 @@
 package com.shuidihuzhu.transfer.sink;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
@@ -17,9 +11,6 @@ import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.*;
 import org.apache.commons.lang.StringUtils;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -27,7 +18,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 /**
  * Created by sunfu on 2018/12/29.
@@ -53,6 +43,14 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+
+        String[] eserverUrls = esUrl.split(",");
+        Set<String> serverList = new LinkedHashSet<String>();
+        for(String url : eserverUrls){
+            serverList.add(url);
+            logger.info("init Es url ===> " + url);
+        }
+
         JestClientFactory factory = new JestClientFactory();
 
         String ELASTIC_SEARCH_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
@@ -60,14 +58,14 @@ public class ESSink extends AbstractSink implements InitializingBean {
                 .setDateFormat(ELASTIC_SEARCH_DATE_FORMAT)
                 .create();
         factory.setHttpClientConfig(new HttpClientConfig
-                .Builder(esUrl)
+                .Builder(serverList)
                 .defaultCredentials(username,password)
                 .multiThreaded(true)
-                .defaultMaxTotalConnectionPerRoute(2)
-                .connTimeout(3600000)
-                .readTimeout(3600000)
+                .defaultMaxTotalConnectionPerRoute(1)
+                .connTimeout(10000)
+                .readTimeout(1200000)
                 .gson(gson)
-                .maxTotalConnection(10).build());
+                .maxTotalConnection(12).build());
 
         client = factory.getObject();
 
@@ -89,16 +87,16 @@ public class ESSink extends AbstractSink implements InitializingBean {
         }
     }
 
-    private JestResult batchInsertAction(List<SinkRecord> recordList) throws Exception {
-//        System.out.println("batchInsertAction ===> start...  " + recordList.size());
+    private JestResult batchInsertAction(Map<String,SinkRecord> recordMap) throws Exception {
+        System.out.println("batchInsertAction ===> start...  " + recordMap.size());
 
         Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
         Index index = null;
         Map<String, String> idAndRowKeyMap = new HashMap();
-        for (SinkRecord record : recordList) {
-            String id = (String) record.getKeyValues().get("id");
+        for (SinkRecord record : recordMap.values()) {
+            String id = String.valueOf(record.getKeyValues().get("id"));
             if (!StringUtils.isEmpty(id)) {
-                logger.info("Insert rowkey = " + record.getRowKey() + ", column num: " + (record.getKeyValues().size() -1));
+//                    System.out.println("Insert rowkey = " + record.getRowKey() + ", column num: " + (record.getKeyValues().size() -1));
                 idAndRowKeyMap.put(id,record.getRowKey());
 
                 index = new Index.Builder(record.getKeyValues()).id(id).build();
@@ -111,14 +109,25 @@ public class ESSink extends AbstractSink implements InitializingBean {
         JestResult result = client.execute(bulkBuilder.build());
         if (!result.isSucceeded()) {
             List<BulkResult.BulkResultItem> errItems = ((BulkResult) result).getFailedItems();
+            Map<String,SinkRecord> rejectedRecordMap = new HashMap<>();
             for(BulkResult.BulkResultItem item : errItems){
-                String logInfo = "batchInsertAction ===> Hbase rowkey=" + idAndRowKeyMap.get(item.id) +" Error item = [id : "  + item.id + ", index : " + item.index + "type : " + item.type + ",operation :" + item.operation + ",status :"  + item.status + ",version :"  + item.version + ",error :"   + item.error + ",errorType :" + item.errorType + ",errorReason :"+ item.errorReason  + "]";
-                logger.error(logInfo);
+                String id = item.id;
+                if (item.status == 429 || item.status == 503 || item.status == 500) {
+                    //拒绝，node异常，重新执行
+                    rejectedRecordMap.put(id,recordMap.get(id));
+                }else {
+                    String logInfo = "batchInsertAction ===> Hbase rowkey=" + idAndRowKeyMap.get(item.id) + " Error item = [id : " + item.id + ", index : " + item.index + "type : " + item.type + ",operation :" + item.operation + ",status :" + item.status + ",version :" + item.version + ",error :" + item.error + ",errorType :" + item.errorType + ",errorReason :" + item.errorReason + "]";
+                    logger.error(logInfo);
+                }
+            }
+
+            if(rejectedRecordMap.isEmpty() == false){
+                result = batchInsertAction(rejectedRecordMap);
             }
         }
+
         return result;
     }
-
     public JestResult batchUpdateAction(List<SinkRecord> recordList) throws Exception{
         Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
         Update update = null;
@@ -152,25 +161,21 @@ public class ESSink extends AbstractSink implements InitializingBean {
         JestResult result = client.execute(bulkBuilder.build());
         if (!result.isSucceeded()) {
             List<BulkResult.BulkResultItem> errItems = ((BulkResult) result).getFailedItems();
-            List<SinkRecord> insertRecordList = new ArrayList();
-            Set<String> idSet = new HashSet();
+            Map<String,SinkRecord> insertRecordMap = new HashMap();
             for(BulkResult.BulkResultItem item : errItems) {
 
                 String id = item.id;
-                if (item.status == 404) {
-                    if(idSet.contains(id) == false) {
-                        //索引不存在,就插入
-                        insertRecordList.add(recordMap.get(id));
-                        idSet.add(id);
-                    }
+                if (item.status == 404 || item.status == 429  || item.status == 503  || item.status == 500 ) {
+                    //索引不存在,拒绝，node异常，重新执行
+                    insertRecordMap.put(id, recordMap.get(id));
                 }else {
                     String logInfo = "batchUpdateAction ===> Hbase rowkey=" + recordMap.get(id).getRowKey() + " Error item = [id : " + item.id + ", index : " + item.index + "type : " + item.type + ",operation :" + item.operation + ",status :" + item.status + ",version :" + item.version + ",error :" + item.error + ",errorType :" + item.errorType + ",errorReason :" + item.errorReason + "]";
                     logger.error(logInfo);
                 }
             }
 
-            if (!insertRecordList.isEmpty()) {
-                result = batchInsertAction(insertRecordList);
+            if (!insertRecordMap.isEmpty()) {
+                result = batchInsertAction(insertRecordMap);
 
                 if (!result.isSucceeded()) {
                     throw new Exception("execute es error.msg=" + result.getErrorMessage());
