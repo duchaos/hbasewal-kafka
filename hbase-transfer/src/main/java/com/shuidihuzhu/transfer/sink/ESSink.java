@@ -74,7 +74,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 //        indexName = "sdhz_user_info_realtime_table3";
 
         //TODO: online
-        indexName = "sdhz_user_info_realtime_table8";
+//        indexName = "sdhz_user_info_realtime_table8";
     }
 
     @Override

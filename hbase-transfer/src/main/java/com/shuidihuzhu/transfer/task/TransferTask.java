@@ -41,7 +41,7 @@ public class TransferTask implements CommandLineRunner{
 //        subscriptionName = "logger";
 
         //TODO: online
-        subscriptionName = "logger20190517";
+//        subscriptionName = "logger20190517";
 
         try {
             // 连接zk
