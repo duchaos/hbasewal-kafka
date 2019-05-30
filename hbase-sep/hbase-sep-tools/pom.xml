@@ -18,14 +18,14 @@
 
   <modelVersion>4.0.0</modelVersion>
   <artifactId>hbase-sep-tools</artifactId>
-  <version>1.24</version>
+  <version>1.25-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>HBase Side-Effect Processor: tools</name>
 
   <parent>
     <groupId>com.shuidihuzhu.datawarehouse</groupId>
     <artifactId>hbase-sep</artifactId>
-    <version>1.24</version>
+    <version>1.25-SNAPSHOT</version>
   </parent>
 
   <dependencies>
@@ -62,7 +62,7 @@
     <dependency>
       <groupId>com.shuidihuzhu.datawarehouse</groupId>
       <artifactId>hbase-sep-impl</artifactId>
-      <version>1.24</version>
+      <version>1.25-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.hbase</groupId>
