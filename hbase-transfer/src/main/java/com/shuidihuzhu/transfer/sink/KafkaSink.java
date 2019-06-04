@@ -55,7 +55,8 @@ public class KafkaSink extends AbstractSink {
     @Override
     public void sink(SinkRecord record) {
         try {
-            ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic,record.getRowKey(), JSON.toJSONString(record));
+            String id = String.valueOf(record.getKeyValues().get("id"));
+            ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic,id, JSON.toJSONString(record));
             procuder.send(item, new Callback() {
                 @Override
                 public void onCompletion(RecordMetadata metadata, Exception e) {
