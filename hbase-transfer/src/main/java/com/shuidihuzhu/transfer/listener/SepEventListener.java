@@ -44,12 +44,24 @@ public class SepEventListener implements EventListener {
             Map<String, Object> keyValues = Maps.newHashMap();
             String rowKey = null;
             String id = null;
+            boolean isErrRowKey=false;
             for (Cell cell : sepEvent.getKeyValues()) {
                 rowKey = Bytes.toString(CellUtil.cloneRow(cell));
-                if(rowKey.contains(":")){
-                    id = rowKey.split(":")[1];
-                }else{
-                    id = rowKey;
+
+                if(rowKey.contains("-") || rowKey.contains(":")==false || rowKey.split(":").length < 2){
+                    logger.warn("Discarded --- rowKey=" + rowKey);
+                    isErrRowKey = true;
+                    break;
+                }
+
+                id = rowKey.split(":")[1];
+
+                try {
+                    Long.parseLong(id);
+                }catch (NumberFormatException e){
+                    logger.warn("Discarded --- rowKey=" + rowKey + ", not long type : " + id);
+                    isErrRowKey = true;
+                    break;
                 }
 
                 long timestamp = cell.getTimestamp();
@@ -79,6 +91,11 @@ public class SepEventListener implements EventListener {
                 record.setColumn(column);
                 keyValues.put(column, value);
             }
+
+            if(isErrRowKey){
+                continue;
+            }
+
             keyValues.put("id",id);
             record.setKeyValues(keyValues);
 
