@@ -146,7 +146,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 //                logger.info("Update rowkey = " + record.getRowKey() + ", column num: " + (record.getKeyValues().size() -1));
                 Map docMap = Maps.newHashMap();
                 docMap.put("doc",record.getKeyValues());
-                update = new Update.Builder(JSON.toJSONString(docMap)).id(id).setParameter("retry_on_conflict",5).build();
+                update = new Update.Builder(JSON.toJSONString(docMap)).id(id).build();
             }else{
                 throw new Exception("rowkey is null");
             }

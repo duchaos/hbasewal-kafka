@@ -17,10 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Created by apple on 18/11/14.
@@ -47,7 +44,7 @@ public class HKafkaConsumer implements InitializingBean {
             @Override
             public void run() {
                 //TODO: 初始化，暂停消费kafka
-                consumer(groupId, topic, fromStart);
+//                consumer(groupId, topic, fromStart);
             }
         }, "kafkaConsumerThread").start();
     }
@@ -96,15 +93,26 @@ public class HKafkaConsumer implements InitializingBean {
                 logger.error("kafka consumer error.",e);
             }
             if (records.count() > 0) {
+                Map<String,SinkRecord> recordMap = new HashMap();
                 List<SinkRecord> recordList = Lists.newArrayList();
                 for (TopicPartition partition : records.partitions()) {
                     List<ConsumerRecord<String, String>> partitionRecords = records.records(partition);
                     try {
                         for (ConsumerRecord<String, String> record : partitionRecords) {
                             SinkRecord sinkRecordObj = JSON.parseObject(record.value(), SinkRecord.class);
-                            recordList.add(sinkRecordObj);
+
+                            String id = String.valueOf(sinkRecordObj.getKeyValues().get("id"));
+                            if (recordMap.containsKey(id)) {
+                                recordMap.get(id).getKeyValues().putAll(sinkRecordObj.getKeyValues());
+                            } else {
+                                recordMap.put(id, sinkRecordObj);
+                            }
+
                         }
+
+                        recordList.addAll(recordMap.values());
                         esSink.batchSink(recordList);
+
                         dualFlag = true;
                     } catch (Exception e) {
                         logger.error("handler error.", e);
