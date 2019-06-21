@@ -1,8 +1,7 @@
 package com.shuidihuzhu.transfer.controller;
 
 import com.shuidihuzhu.transfer.model.Response;
-import com.shuidihuzhu.transfer.sink.HKafkaConsumer;
-import com.shuidihuzhu.transfer.task.PeerRegisterTask;
+import com.shuidihuzhu.transfer.sink.kafka.HKafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

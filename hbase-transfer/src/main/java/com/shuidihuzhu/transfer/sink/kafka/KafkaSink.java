@@ -1,17 +1,18 @@
-package com.shuidihuzhu.transfer.sink;
+package com.shuidihuzhu.transfer.sink.kafka;
 
 import com.alibaba.fastjson.JSON;
-import com.shuidihuzhu.transfer.listener.SepEventListener;
 import com.shuidihuzhu.transfer.model.SinkRecord;
+import com.shuidihuzhu.transfer.sink.AbstractSink;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.producer.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -28,6 +29,12 @@ public class KafkaSink extends AbstractSink {
     @Value("${hbase-transfer.kafka.bootstrap.server}")
     private String bootstrap;
 
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    @Autowired
+    private KakfaSendResultHandler kakfaSendResultHandler;
+
     @PostConstruct
     public void init() {
         Properties props = new Properties();
@@ -37,7 +44,7 @@ public class KafkaSink extends AbstractSink {
         props.put("max.request.size", 5242880);//5m
         //设置压缩类型
         String compType = "lz4";
-        if(StringUtils.isNotBlank(compType)) {
+        if (StringUtils.isNotBlank(compType)) {
             props.put("compression.type", compType);
         }
         props.put("batch.size", 16384);
@@ -54,21 +61,42 @@ public class KafkaSink extends AbstractSink {
 
     @Override
     public void sink(SinkRecord record) {
+        String id = String.valueOf(record.getKeyValues().get("id"));
+        ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic, id, JSON.toJSONString(record));
         try {
-            String id = String.valueOf(record.getKeyValues().get("id"));
-            ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic,id, JSON.toJSONString(record));
-            procuder.send(item, new Callback() {
-                @Override
-                public void onCompletion(RecordMetadata metadata, Exception e) {
+//            TODO  方案降级
+            if (true) {
+                procuder.send(item, new Callback() {
+                    @Override
+                    public void onCompletion(RecordMetadata metadata, Exception e) {
 //                    if (metadata != null) {
 //                        logger.debug("[发送成功] --- topic= " + metadata.topic() + "，partiton: " + metadata.partition() + " offset: " + metadata.offset() + ", content=" + SinkRecord.getText(record));
 //                    }
 
-                    if (e != null) {
-                        logger.error("[发送失败] --- topic= " + topic + ",失败原因：" + e.getMessage());
+                        if (e != null) {
+                            logger.error("[发送失败] --- topic= " + topic + ",失败原因：" + e.getMessage());
+                        }
                     }
-                }
-            });
+                });
+//        TODO 方案降级
+            } else {
+                kafkaTemplate.setProducerListener(kakfaSendResultHandler);
+                kafkaTemplate.send(item);
+            }
+        } catch (Exception e) {
+            logger.error("kafka send error.", e);
+            handleErrorRecord(record);
+        }
+
+    }
+
+    @Override
+    public void sink(String topic, SinkRecord record) {
+        try {
+            String id = String.valueOf(record.getKeyValues().get("id"));
+            ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic, id, JSON.toJSONString(record));
+            kafkaTemplate.setProducerListener(kakfaSendResultHandler);
+            kafkaTemplate.send(item);
         } catch (Exception e) {
             logger.error("kafka send error.", e);
             handleErrorRecord(record);

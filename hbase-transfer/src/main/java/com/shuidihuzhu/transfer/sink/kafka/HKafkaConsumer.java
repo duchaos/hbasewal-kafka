@@ -1,22 +1,21 @@
-package com.shuidihuzhu.transfer.sink;
+package com.shuidihuzhu.transfer.sink.kafka;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.shuidihuzhu.transfer.model.SinkRecord;
+import com.shuidihuzhu.transfer.sink.elasticsearch.ESSink;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Scope;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.*;
 
 /**
@@ -25,7 +24,13 @@ import java.util.*;
 @Service
 public class HKafkaConsumer implements InitializingBean {
     private Logger logger = LoggerFactory.getLogger(HKafkaConsumer.class);
-    @Autowired
+
+    @Resource
+    private ESSink deviceInfoESSink;
+    @Resource
+    private ESSink userInfoESSink;
+
+    @Resource
     private ESSink esSink;
 
     @Value("${hbase-transfer.kafka.bootstrap.server}")
@@ -47,6 +52,7 @@ public class HKafkaConsumer implements InitializingBean {
             }
         }, "kafkaConsumerThread").start();
     }
+
 
     public void consumer(String groupId, String topic, String fromStart) {
 //        //TODO: Test38
@@ -77,7 +83,7 @@ public class HKafkaConsumer implements InitializingBean {
             @Override
             public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
                 logger.info("onPartitionsAssigned");
-                if(!StringUtils.isEmpty(fromStart) && "earliest".equals(fromStart)){
+                if (!StringUtils.isEmpty(fromStart) && "earliest".equals(fromStart)) {
                     consumer.seekToBeginning(partitions);
                 }
             }
@@ -86,13 +92,13 @@ public class HKafkaConsumer implements InitializingBean {
         boolean dualFlag;
         while (true) {
             ConsumerRecords<String, String> records = null;
-            try{
+            try {
                 records = consumer.poll(1000);
-            }catch (Exception e){
-                logger.error("kafka consumer error.",e);
+            } catch (Exception e) {
+                logger.error("kafka consumer error.", e);
             }
             if (records.count() > 0) {
-                Map<String,SinkRecord> recordMap = new HashMap();
+                Map<String, SinkRecord> recordMap = new HashMap();
                 List<SinkRecord> recordList = Lists.newArrayList();
                 for (TopicPartition partition : records.partitions()) {
                     List<ConsumerRecord<String, String>> partitionRecords = records.records(partition);
@@ -125,4 +131,27 @@ public class HKafkaConsumer implements InitializingBean {
             }
         }
     }
+
+
+    @KafkaListener(topics = "hbase-tranfer", groupId = "hbase-tranfer_kafka_consumer", errorHandler = "kafkaConsumerErrorHandler")
+    public void userInfoListener(ConsumerRecord<String, String> record, Acknowledgment ack, Consumer consumer) {
+        if (!StringUtils.isEmpty(fromStart) && "earliest".equals(fromStart)) {
+            Collection<TopicPartition> partitions = Collections.singletonList(new TopicPartition("hbase-tranfer", record.partition()));
+            consumer.seekToBeginning(partitions);
+        }
+        userInfoESSink.batchSink(Lists.newArrayList(SinkRecord.parseFromConsumerRecord(record)));
+        ack.acknowledge();
+    }
+
+
+    @KafkaListener(topics = "hbase-tranfer-device", groupId = "hbase-tranfer_kafka_consumer-device", errorHandler = "kafkaConsumerErrorHandler")
+    public void deviceInfoListener(ConsumerRecord<String, String> record, Acknowledgment ack, Consumer consumer) {
+        if (!StringUtils.isEmpty(fromStart) && "earliest".equals(fromStart)) {
+            Collection<TopicPartition> partitions = Collections.singletonList(new TopicPartition("hbase-tranfer-device", record.partition()));
+            consumer.seekToBeginning(partitions);
+        }
+        deviceInfoESSink.batchSink(Lists.newArrayList(SinkRecord.parseFromConsumerRecord(record)));
+        ack.acknowledge();
+    }
+
 }

@@ -3,7 +3,7 @@ package com.shuidihuzhu.transfer.controller;
 import com.google.common.collect.Maps;
 import com.shuidihuzhu.transfer.model.Response;
 import com.shuidihuzhu.transfer.model.SinkRecord;
-import com.shuidihuzhu.transfer.sink.ESSink;
+import com.shuidihuzhu.transfer.sink.elasticsearch.ESSink;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

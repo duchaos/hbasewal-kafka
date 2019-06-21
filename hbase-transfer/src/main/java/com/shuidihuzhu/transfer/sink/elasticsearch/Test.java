@@ -1,4 +1,4 @@
-package com.shuidihuzhu.transfer.sink;
+package com.shuidihuzhu.transfer.sink.elasticsearch;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -11,19 +11,18 @@ import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.Bulk;
+import io.searchbox.core.BulkResult;
 import io.searchbox.core.Index;
-import io.searchbox.core.UpdateByQuery;
+import io.searchbox.core.Update;
 import org.apache.commons.lang.StringUtils;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -40,7 +39,7 @@ public class Test {
     @Value("${hbase-transfer.elasticsearch.type}")
     private String indexType;
 
-    public static void main() throws Exception {
+    public static void main(String[] arge) throws Exception {
         JestClientFactory factory = new JestClientFactory();
 
         String ELASTIC_SEARCH_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
@@ -48,7 +47,7 @@ public class Test {
                 .setDateFormat(ELASTIC_SEARCH_DATE_FORMAT)
                 .create();
         factory.setHttpClientConfig(new HttpClientConfig
-                .Builder("http://10")
+                .Builder("http://10.100.2.3:9202")
                 .multiThreaded(true)
                 .defaultMaxTotalConnectionPerRoute(2)
                 .connTimeout(3600000)
@@ -57,44 +56,54 @@ public class Test {
                 .maxTotalConnection(10).build());
 
         client = factory.getObject();
+        SinkRecord recode = new SinkRecord();
+        Map<String, Object> map = new HashMap<>(1);
+        map.put("data_basic_wx_province", "上海");
+        recode.setKeyValues(map);
+        JestResult jestResult = new Test().updateAction(recode);
+        System.out.println("&&@@" + JSON.toJSONString(jestResult));
 
     }
 
     public void sink(SinkRecord record) {
-        try{
+        try {
             JestResult updateResult = updateAction(record);
 
-            if(updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue()==0){
+            if (updateResult.isSucceeded() && updateResult.getJsonObject().get("updated").getAsBigInteger().intValue() == 0) {
                 insertAction(record);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
 //            handleErrorRecord(record);
         }
     }
 
-    public JestResult updateAction(SinkRecord record) throws Exception{
-        record.getKeyValues().put("id",record.getRowKey());
-        UpdateByQuery updateByQuery = new UpdateByQuery.Builder(buildSearch(record))
-                .addIndex(indexName)
-                .addType(indexType)
-                .build();
-
-        return client.execute(updateByQuery);
+    public JestResult updateAction(SinkRecord record) throws Exception {
+//        record.getKeyValues().put("id", record.getRowKey());
+//        UpdateByQuery updateByQuery = new UpdateByQuery.Builder(buildSearch(record))
+//                .addIndex()
+//                .addType()
+//                .build();
+        Update update = new Update.Builder(JSON.toJSONString(record)).id("352432849").build();
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex("sdhz_user_info_realtime_table2").defaultType("detail");
+        ;
+        bulkBuilder.addAction(update).build();
+        BulkResult result = client.execute(bulkBuilder.build());
+        return result;
     }
 
-    public void insertAction(SinkRecord record) throws Exception{
-        Bulk.Builder bulkBuilder =new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
+    public void insertAction(SinkRecord record) throws Exception {
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
         Index index = null;
-        if(!StringUtils.isEmpty(record.getRowKey())){
+        if (!StringUtils.isEmpty(record.getRowKey())) {
             index = new Index.Builder(record.getKeyValues()).id(record.getRowKey()).build();
-        }else{
+        } else {
             index = new Index.Builder(record.getKeyValues()).build();
         }
         bulkBuilder.addAction(index).build();
 
         JestResult result = client.execute(bulkBuilder.build());
-        if(!result.isSucceeded()){
-            throw new Exception("execute es error.msg="+result.getErrorMessage());
+        if (!result.isSucceeded()) {
+            throw new Exception("execute es error.msg=" + result.getErrorMessage());
         }
     }
 
@@ -105,22 +114,22 @@ public class Test {
         if (record != null) {
             //构建查询条件必须嵌入filter中！
             BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-            if(!StringUtils.isEmpty(record.getRowKey())){
-                boolQueryBuilder.must(QueryBuilders.termQuery("id.keyword",record.getRowKey()));
-            }else{
+            if (!StringUtils.isEmpty(record.getRowKey())) {
+                boolQueryBuilder.must(QueryBuilders.termQuery("id.keyword", record.getRowKey()));
+            } else {
                 throw new RuntimeException("binlog dont contain id");
             }
 
             searchSourceBuilder.query(boolQueryBuilder);
         }
         JSONObject scriptObject = JSON.parseObject(searchSourceBuilder.toString());
-        Map<String,String> scriptMap = Maps.newHashMap();
+        Map<String, String> scriptMap = Maps.newHashMap();
         String script = "";
-        for(Map.Entry<String,Object> tmp : record.getKeyValues().entrySet()){
-            script = script+"ctx._source."+tmp.getKey()+"='"+tmp.getValue()+"';";
+        for (Map.Entry<String, Object> tmp : record.getKeyValues().entrySet()) {
+            script = script + "ctx._source." + tmp.getKey() + "='" + tmp.getValue() + "';";
         }
-        scriptMap.put("source",script);
-        scriptMap.put("lang","painless");
+        scriptMap.put("source", script);
+        scriptMap.put("lang", "painless");
         scriptObject.put("script", scriptMap);
         return scriptObject.toString();
     }

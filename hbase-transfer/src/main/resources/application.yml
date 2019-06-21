@@ -5,4 +5,27 @@ spring:
     banner-mode: "off"
   jooq:
       sql-dialect: mysql
-
+`  kafka:
+    bootstrap-servers: 10.100.4.2:9092,10.100.4.3:9092
+    producer:
+      retries: 3
+      batch-size: 16384
+      buffer-memory: 33554432
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        linger.ms: 1
+        max:
+          request:
+            size: 5242880 #5m
+      acks: 1
+      compression-type: "lz4"
+    consumer:
+      enable-auto-commit: false
+      auto-commit-interval: 100ms
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        session.timeout.ms: 30000
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
