@@ -28,7 +28,7 @@ public class DeviceInfoESSink extends ESSink {
     public void batchSink(List<SinkRecord> recordList) {
         try {
             Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
-            JestResult jestResult = batchUpdateAction(recordList, bulkBuilder);
+            batchUpdateAction(recordList, bulkBuilder);
         } catch (Exception e) {
             logger.error("DeviceInfoESSink.batchSink into es error.", e);
             handleBatchErrorRecord(recordList);
@@ -36,7 +36,7 @@ public class DeviceInfoESSink extends ESSink {
     }
 
     /**
-     * 2.2 更新失败
+     * 2.2 更新失败 FIXME  貌似用不着
      * *       根据设备id ，获取对应设备画像全部数据，内存中进行目标字段更新替换，放入用户画像部分信息，进行index
      *
      * @author: duchao01@shuidihuzhu.com
@@ -57,7 +57,7 @@ public class DeviceInfoESSink extends ESSink {
      * @date: 2019-06-21 17:45:16
      */
     @Override
-    protected Map<String, Object> updateHandleWithBulider(Map<String, Object> map) {
+    protected Map<String, Object> updateHandleWithBuilder(Map<String, Object> map) {
         String deviceId = String.valueOf(map.get(DEVICE_ID));
         Map<String, Object> userInfoMap = (Map<String, Object>) map.get("user");
 //        不包含 userId 的 情况 ，直接返回更新的map
@@ -77,7 +77,7 @@ public class DeviceInfoESSink extends ESSink {
             userInfoMap = jestResult.getSourceAsObject(Map.class);
             map.put("user", JSON.toJSONString(userInfoMap));
         } catch (Exception e) {
-            logger.error("DeviceInfoESSink.updateHandleWithBulider", e);
+            logger.error("DeviceInfoESSink.updateHandleWithBuilder", e);
         }
         return map;
 

@@ -26,6 +26,10 @@ public class UserInfoESSink extends ESSink {
         try {
             Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIntex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
             JestResult jestResult = batchUpdateAction(recordList, bulkBuilder);
+            if (!jestResult.isSucceeded()){
+                logger.error("UserInfoESSink.batchSink error！");
+                return;
+            }
 //           获取更新结果，更新成功后，需要同步更新 设备画像表
             TransferEnum sycnToIndex = SDHZ_USER_INFO_REALTIME.syncToIndexEnum();
             if (null != sycnToIndex) {

@@ -165,7 +165,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
             if (!StringUtils.isEmpty(id)) {
                 Map<String, Map<String, Object>> docMap = new HashMap<>(1);
-                docMap.put("doc", updateHandleWithBulider(updateMap));
+                docMap.put("doc", updateHandleWithBuilder(updateMap));
                 update = new Update.Builder(JSON.toJSONString(docMap)).id(id).build();
             } else {
                 throw new Exception("rowkey is null");
@@ -202,7 +202,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
      * @author: duchao01@shuidihuzhu.com
      * @date: 2019-06-21 17:29:08
      */
-    protected Map<String, Object> updateHandleWithBulider(Map<String, Object> updateMap) {
+    protected Map<String, Object> updateHandleWithBuilder(Map<String, Object> updateMap) {
         return updateMap;
     }
 
