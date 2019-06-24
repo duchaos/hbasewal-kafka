@@ -5,9 +5,6 @@ import com.shuidihuzhu.transfer.sink.elasticsearch.ESSink;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.Bulk;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -22,8 +19,7 @@ import static org.apache.hadoop.yarn.webapp.Params.USER;
  * @author duchao
  * @version : com.shuidihuzhu.transfer.sink.elasticsearch.com.shuidihuzhu.transfer.ESSinkTest.java, v 0.1 2019-06-22 15:46 duchao Exp $
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+
 public class ESSinkTest {
 
     @Resource

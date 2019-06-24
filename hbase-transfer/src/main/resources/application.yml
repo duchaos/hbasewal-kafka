@@ -27,5 +27,5 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         session.timeout.ms: 30000
-#    listener:
-#      ack-mode: "org.springframework.kafka.listener.ContainerProperties.AckMode.MANUAL_IMMEDIATE"
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
