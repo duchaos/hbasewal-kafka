@@ -50,13 +50,10 @@
     </dependency>
 
     <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-auto</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
+
     <dependency>
       <groupId>com.shuidihuzhu.infra</groupId>
       <artifactId>graceful-shutdown-spring-boot-starter</artifactId>
@@ -95,7 +92,7 @@
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
-      <version>2.2.6.RELEASE</version>
+      <version>2.1.11.RELEASE</version>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
@@ -228,7 +225,17 @@
         </exclusion>
       </exclusions>
     </dependency>
-
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-test</artifactId>
+      <version>2.1.5.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>5.1.7.RELEASE</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

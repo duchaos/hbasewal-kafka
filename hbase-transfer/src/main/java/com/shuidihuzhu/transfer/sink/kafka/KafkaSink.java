@@ -13,6 +13,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import java.util.Properties;
 
 /**
@@ -29,7 +30,7 @@ public class KafkaSink extends AbstractSink {
     @Value("${hbase-transfer.kafka.bootstrap.server}")
     private String bootstrap;
 
-    @Autowired
+    @Resource
     private KafkaTemplate<String, String> kafkaTemplate;
 
     @Autowired

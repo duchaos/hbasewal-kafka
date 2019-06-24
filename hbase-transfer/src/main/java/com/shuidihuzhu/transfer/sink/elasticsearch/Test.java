@@ -48,20 +48,22 @@ public class Test {
                 .create();
         factory.setHttpClientConfig(new HttpClientConfig
                 .Builder("http://10.100.2.3:9202")
-                .multiThreaded(true)
-                .defaultMaxTotalConnectionPerRoute(2)
+                .multiThreaded(false)
+                .defaultMaxTotalConnectionPerRoute(1)
+                .defaultCredentials("hbasetransfer", "g7TEeOAebp2zJx8Y")
                 .connTimeout(3600000)
                 .readTimeout(3600000)
                 .gson(gson)
-                .maxTotalConnection(10).build());
+                .maxTotalConnection(1).build());
 
         client = factory.getObject();
         SinkRecord recode = new SinkRecord();
-        Map<String, Object> map = new HashMap<>(1);
+        Map<String, Object> map = new HashMap<>(2);
         map.put("data_basic_wx_province", "上海");
+        map.put("data_basic_wx_nickname", "二大爷");
         recode.setKeyValues(map);
-        JestResult jestResult = new Test().updateAction(recode);
-        System.out.println("&&@@" + JSON.toJSONString(jestResult));
+        Test test = new Test();
+        JestResult jestResult = test.updateAction(recode);
 
     }
 
@@ -83,16 +85,18 @@ public class Test {
 //                .addIndex()
 //                .addType()
 //                .build();
-        Update update = new Update.Builder(JSON.toJSONString(record)).id("352432849").build();
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("doc",record.getKeyValues());
+        Update update = new Update.Builder(JSON.toJSONString(map)).id("352432849").build();
         Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex("sdhz_user_info_realtime_table2").defaultType("detail");
-        ;
+//        docMap.put("doc", updateHandleWithBuilder(updateMap));
         bulkBuilder.addAction(update).build();
         BulkResult result = client.execute(bulkBuilder.build());
         return result;
     }
 
-    public void insertAction(SinkRecord record) throws Exception {
-        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
+    public JestResult insertAction(SinkRecord record) throws Exception {
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex("sdhz_user_info_realtime_table2").defaultType("detail");
         Index index = null;
         if (!StringUtils.isEmpty(record.getRowKey())) {
             index = new Index.Builder(record.getKeyValues()).id(record.getRowKey()).build();
@@ -105,6 +109,7 @@ public class Test {
         if (!result.isSucceeded()) {
             throw new Exception("execute es error.msg=" + result.getErrorMessage());
         }
+        return result;
     }
 
     private String buildSearch(SinkRecord record) {

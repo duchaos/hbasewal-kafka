@@ -30,9 +30,6 @@ public class HKafkaConsumer implements InitializingBean {
     @Resource
     private ESSink userInfoESSink;
 
-    @Resource
-    private ESSink esSink;
-
     @Value("${hbase-transfer.kafka.bootstrap.server}")
     private String kafkaBroker;
 
@@ -116,7 +113,7 @@ public class HKafkaConsumer implements InitializingBean {
                         }
 
                         recordList.addAll(recordMap.values());
-                        esSink.batchSink(recordList);
+                        userInfoESSink.batchSink(recordList);
 
                         dualFlag = true;
                     } catch (Exception e) {

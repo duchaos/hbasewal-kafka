@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Map;
 
 import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_USER_INFO_REALTIME;
 
@@ -21,12 +22,13 @@ public class UserInfoESSink extends ESSink {
     @Resource
     private DeviceInfoESSink deviceInfoESSink;
 
+    private Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIntex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
+
     @Override
     public void batchSink(List<SinkRecord> recordList) {
         try {
-            Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIntex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
             JestResult jestResult = batchUpdateAction(recordList, bulkBuilder);
-            if (!jestResult.isSucceeded()){
+            if (!jestResult.isSucceeded()) {
                 logger.error("UserInfoESSink.batchSink error！");
                 return;
             }
@@ -40,5 +42,10 @@ public class UserInfoESSink extends ESSink {
             logger.error("UserInfoESSink.batchSink into es error.", e);
             handleBatchErrorRecord(recordList);
         }
+    }
+
+    @Override
+    public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
+        return batchInsertAction(rejectedRecordMap, bulkBuilder);
     }
 }

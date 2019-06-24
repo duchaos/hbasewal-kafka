@@ -15,30 +15,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.util.*;
 
 /**
  * Created by sunfu on 2018/12/29.
  */
-@Service
+//@Service
 public class ESSink extends AbstractSink implements InitializingBean {
 
-    protected Logger logger = LoggerFactory.getLogger(ESSink.class);
+    public Logger logger = LoggerFactory.getLogger(ESSink.class);
 
-    protected JestClient client;
+    public JestClient client;
 
     @Value("${hbase-transfer.elasticsearch.index}")
-    protected String indexName;
+    public String indexName;
     @Value("${hbase-transfer.elasticsearch.type}")
-    protected String indexType;
+    public String indexType;
     @Value("${hbase-transfer.elasticsearch.url}")
-    protected String esUrl;
+    public String esUrl;
     @Value("${hbase-transfer.elasticsearch.username}")
-    protected String username;
+    public String username;
     @Value("${hbase-transfer.elasticsearch.password}")
-    protected String password;
+    public String password;
 
 
     @Override
@@ -100,7 +99,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
         Map<String, SinkRecord> recordMap = recordPreUpdate(recordList, bulkBuilder);
         JestResult result = client.execute(bulkBuilder.build());
-        result = afterUpdateProcess(bulkBuilder,recordMap, result);
+        result = afterUpdateProcess(recordMap, result);
         return result;
     }
 
@@ -117,11 +116,11 @@ public class ESSink extends AbstractSink implements InitializingBean {
     public JestResult batchUpdateAction(List<SinkRecord> recordList, Bulk.Builder bulkBuilder) throws Exception {
         Map<String, SinkRecord> recordMap = recordPreUpdate(recordList, bulkBuilder);
         JestResult result = client.execute(bulkBuilder.build());
-        result = afterUpdateProcess(bulkBuilder, recordMap, result);
+        result = afterUpdateProcess(recordMap, result);
         return result;
     }
 
-    protected JestResult batchInsertAction(Map<String, SinkRecord> recordMap, Bulk.Builder bulkBuilder) throws Exception {
+    public JestResult batchInsertAction(Map<String, SinkRecord> recordMap, Bulk.Builder bulkBuilder) throws Exception {
         System.out.println("batchInsertAction ===> start...  " + recordMap.size());
         Map<String, String> idAndRowKeyMap = recordPreInsert(recordMap, bulkBuilder);
         JestResult result = client.execute(bulkBuilder.build());
@@ -130,25 +129,30 @@ public class ESSink extends AbstractSink implements InitializingBean {
     }
 
 
-    protected Map<String, String> recordPreInsert(Map<String, SinkRecord> recordMap, Bulk.Builder bulkBuilder) {
+    public Map<String, String> recordPreInsert(Map<String, SinkRecord> recordMap, Bulk.Builder bulkBuilder) {
         Index index = null;
         Map<String, String> idAndRowKeyMap = new HashMap();
         for (SinkRecord record : recordMap.values()) {
-            String id = String.valueOf(record.getKeyValues().get("id"));
+            Map<String, Object> keyValues = record.getKeyValues();
+            String id = String.valueOf(keyValues.get("id"));
             if (!StringUtils.isEmpty(id)) {
 //                    System.out.println("Insert rowkey = " + record.getRowKey() + ", column num: " + (record.getKeyValues().size() -1));
                 idAndRowKeyMap.put(id, record.getRowKey());
 
-                index = new Index.Builder(record.getKeyValues()).id(id).build();
+                index = new Index.Builder(keyValues).id(id).build();
             } else {
-                index = new Index.Builder(record.getKeyValues()).build();
+                index = new Index.Builder(keyValues).build();
             }
             bulkBuilder.addAction(index).build();
         }
         return idAndRowKeyMap;
     }
 
-    protected Map<String, SinkRecord> recordPreUpdate(List<SinkRecord> recordList, Bulk.Builder bulkBuilder) throws Exception {
+    public Map<String, Object> preInsert(Map<String, Object> keyValues) {
+        return keyValues;
+    }
+
+    public Map<String, SinkRecord> recordPreUpdate(List<SinkRecord> recordList, Bulk.Builder bulkBuilder) throws Exception {
         Update update = null;
         Map<String, SinkRecord> recordMap = new HashMap();
         for (SinkRecord record : recordList) {
@@ -165,8 +169,12 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
             if (!StringUtils.isEmpty(id)) {
                 Map<String, Map<String, Object>> docMap = new HashMap<>(1);
-                docMap.put("doc", updateHandleWithBuilder(updateMap));
+                Map<String, Object> resultMap = updateHandleWithBuilder(updateMap);
+                docMap.put("doc", resultMap);
+                id = String.valueOf(resultMap.get("id"));
                 update = new Update.Builder(JSON.toJSONString(docMap)).id(id).build();
+                updateMap = resultMap;
+                record.setKeyValues(resultMap);
             } else {
                 throw new Exception("rowkey is null");
             }
@@ -202,11 +210,11 @@ public class ESSink extends AbstractSink implements InitializingBean {
      * @author: duchao01@shuidihuzhu.com
      * @date: 2019-06-21 17:29:08
      */
-    protected Map<String, Object> updateHandleWithBuilder(Map<String, Object> updateMap) {
+    public Map<String, Object> updateHandleWithBuilder(Map<String, Object> updateMap) {
         return updateMap;
     }
 
-    protected JestResult afterInsertProcess(Map<String, SinkRecord> recordMap, Map<String, String> idAndRowKeyMap, JestResult result) throws Exception {
+    public JestResult afterInsertProcess(Map<String, SinkRecord> recordMap, Map<String, String> idAndRowKeyMap, JestResult result) throws Exception {
         if (!result.isSucceeded()) {
             List<BulkResult.BulkResultItem> errItems = ((BulkResult) result).getFailedItems();
             Map<String, SinkRecord> rejectedRecordMap = new HashMap<>();
@@ -222,14 +230,18 @@ public class ESSink extends AbstractSink implements InitializingBean {
             }
 
             if (!rejectedRecordMap.isEmpty()) {
-                Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
-                result = batchInsertAction(rejectedRecordMap, bulkBuilder);
+                result = batchInsertAction(rejectedRecordMap);
             }
         }
         return result;
     }
 
-    protected JestResult afterUpdateProcess(Bulk.Builder bulkBuilder, Map<String, SinkRecord> recordMap, JestResult result) throws Exception {
+    public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(indexName).defaultType(indexType);
+        return batchInsertAction(rejectedRecordMap, bulkBuilder);
+    }
+
+    public JestResult afterUpdateProcess(Map<String, SinkRecord> recordMap, JestResult result) throws Exception {
         if (!result.isSucceeded()) {
             List<BulkResult.BulkResultItem> errItems = ((BulkResult) result).getFailedItems();
             Map<String, SinkRecord> insertRecordMap = new HashMap();
@@ -247,7 +259,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
             if (!insertRecordMap.isEmpty()) {
 //               插入数据分两种情况 我们在预处理时，recordMap已经对不同数据做过处理，故，这里我们只需要根据不同的index 进行插入就可以
-                result = batchInsertAction(insertRecordMap, bulkBuilder);
+                result = batchInsertAction(insertRecordMap);
                 if (!result.isSucceeded()) {
                     throw new Exception("execute es error.msg=" + result.getErrorMessage());
                 }
@@ -256,7 +268,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         return result;
     }
 
-    protected JestResult searchDocumentById(String indexName, String typeName, String id) throws Exception {
+    public JestResult searchDocumentById(String indexName, String typeName, String id) throws Exception {
         Get get = new Get.Builder(indexName, id).type(typeName).build();
         JestResult result = client.execute(get);
         if (!result.isSucceeded()) {

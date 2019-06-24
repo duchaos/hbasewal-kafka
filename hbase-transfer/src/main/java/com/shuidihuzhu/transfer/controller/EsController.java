@@ -7,12 +7,12 @@ import com.shuidihuzhu.transfer.sink.elasticsearch.ESSink;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.annotation.Resource;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,8 +21,8 @@ import java.util.UUID;
 public class EsController {
     private Logger logger = LoggerFactory.getLogger(EsController.class);
 
-    @Autowired
-    private ESSink esSink;
+    @Resource
+    private ESSink userInfoESSink;
 
     @RequestMapping(value="/add", method = {RequestMethod.GET, RequestMethod.POST})
     public @ResponseBody Response add(String rowkey){
@@ -37,7 +37,7 @@ public class EsController {
             Map<String, Object> keyValues = Maps.newHashMap();
             keyValues.put("xx","yy");
             record.setKeyValues(keyValues);
-            esSink.sink(record);
+            userInfoESSink.sink(record);
         }catch (Exception e){
             logger.error("add peer error.",e);
             return Response.getInstance(Response.SYSTEM_SERVER_ERROR);
