@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
-import java.util.Map;
 
 import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_USER_INFO_REALTIME;
 
@@ -44,8 +43,4 @@ public class UserInfoESSink extends ESSink {
         }
     }
 
-    @Override
-    public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
-        return batchInsertAction(rejectedRecordMap, bulkBuilder);
-    }
 }

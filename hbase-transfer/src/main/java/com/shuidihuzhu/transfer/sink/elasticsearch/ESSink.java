@@ -21,7 +21,6 @@ import java.util.*;
 /**
  * Created by sunfu on 2018/12/29.
  */
-//@Service
 public class ESSink extends AbstractSink implements InitializingBean {
 
     public Logger logger = LoggerFactory.getLogger(ESSink.class);
@@ -87,7 +86,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
     }
 
     /**
-     * 这里说明方法的用途
      *
      * @param recordList 需要处理的数据
      * @return {@link JestResult }
@@ -104,7 +102,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
     }
 
     /**
-     * 这里说明方法的用途
      *
      * @param recordList  需要处理的数据
      * @param bulkBuilder es bulkBuilder
@@ -148,9 +145,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
         return idAndRowKeyMap;
     }
 
-    public Map<String, Object> preInsert(Map<String, Object> keyValues) {
-        return keyValues;
-    }
 
     public Map<String, SinkRecord> recordPreUpdate(List<SinkRecord> recordList, Bulk.Builder bulkBuilder) throws Exception {
         Update update = null;
@@ -160,7 +154,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 //           这里的id ，可以是 用户画像的id ，也可以是 设备画像的id
 //              id 的作用，就是 更新索引时候，锁定更新的document
             Object idObj = updateMap.get("id");
-            String id = null;
+            String id;
             if (idObj != null) {
                 id = String.valueOf(idObj);
             } else {
@@ -179,7 +173,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
                 throw new Exception("rowkey is null");
             }
             bulkBuilder.addAction(update).build();
-
             if (recordMap.containsKey(id)) {
                 recordMap.get(id).getKeyValues().putAll(updateMap);
             } else {
@@ -258,7 +251,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
             }
 
             if (!insertRecordMap.isEmpty()) {
-//               插入数据分两种情况 我们在预处理时，recordMap已经对不同数据做过处理，故，这里我们只需要根据不同的index 进行插入就可以
+//               插入数据分两种情况 我们在预处理时，recordMap已经对不同数据做过处理，故这里我们只需要根据不同的index 进行插入就可以
                 result = batchInsertAction(insertRecordMap);
                 if (!result.isSucceeded()) {
                     throw new Exception("execute es error.msg=" + result.getErrorMessage());
@@ -276,5 +269,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
         }
         return result;
     }
+
 
 }

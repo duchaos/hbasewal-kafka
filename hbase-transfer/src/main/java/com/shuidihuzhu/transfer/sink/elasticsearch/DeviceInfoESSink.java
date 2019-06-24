@@ -37,16 +37,6 @@ public class DeviceInfoESSink extends ESSink {
     }
 
     /**
-     * 2.2 更新失败 FIXME  貌似用不着
-     * *       根据设备id ，获取对应设备画像全部数据，内存中进行目标字段更新替换，放入用户画像部分信息，进行index
-     *
-     * @author: duchao01@shuidihuzhu.com
-     * @date: 2019-06-21 18:44:47
-     */
-    private void updateDeviceFail() {
-    }
-
-    /**
      * 需要区分是否包含 userId，
      * a、不包含不做处理
      * b、包含，需要进行如下操作
@@ -79,6 +69,27 @@ public class DeviceInfoESSink extends ESSink {
                 hashMap.put("id", deviceId);
                 return hashMap;
             }
+        } else {
+            if (idObj != null) {
+                String device_Id = String.valueOf(idObj);
+                try {
+                    boolean flag = false;
+                    JestResult jestResult = searchDocumentById(SDHZ_DEVICE_INFO_REALTIME.getIntex(), SDHZ_DEVICE_INFO_REALTIME.getType(), device_Id);
+                    Map<String, Object> deviceInfoMap = jestResult.getSourceAsObject(Map.class);
+                    for (Map.Entry<String, Object> entry : deviceInfoMap.entrySet()) {
+                        if (map.containsKey(entry.getKey()) && !map.get(entry.getKey()).equals(entry.getValue())) {
+                            entry.setValue(map.get(entry.getKey()));
+                            flag = true;
+                        }
+                    }
+                    if (flag) {
+                        map = deviceInfoMap;
+                    }
+
+                } catch (Exception e) {
+                    logger.error("DeviceInfoESSink.updateHandleWithBuilder", e);
+                }
+            }
         }
         if (MapUtils.isEmpty(userInfoMap)) {
             return map;
@@ -103,10 +114,7 @@ public class DeviceInfoESSink extends ESSink {
     }
 
     @Override
-    public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
-        /** 更新设备画像的时候，存在一个问题，那就是 如果设备换了用户id，那么用户所有信息都需要变更为新的
-         *  目前能做到 替换设备信息中的新数据，需要确保新旧用户信息的字段一一对应，否则会出现旧数据的遗留
-         * FIXME*/
-        return batchInsertAction(rejectedRecordMap, bulkBuilder);
+    public JestResult afterUpdateProcess(Map<String, SinkRecord> recordMap, JestResult result) throws Exception {
+        return batchInsertAction(recordMap, bulkBuilder);
     }
 }

@@ -20,7 +20,7 @@ import static org.apache.hadoop.yarn.webapp.Params.USER;
  * @version : com.shuidihuzhu.transfer.sink.elasticsearch.com.shuidihuzhu.transfer.ESSinkTest.java, v 0.1 2019-06-22 15:46 duchao Exp $
  */
 
-public class ESSinkTest {
+public class ESSinkTest extends TestBase{
 
     @Resource
     private ESSink userInfoESSink;
@@ -51,7 +51,6 @@ public class ESSinkTest {
     @Test
     public void batchInsertAction() throws Exception {
         Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex("sdhz_device_info_realtime").defaultType("detail");
-        Map<String, SinkRecord> maps = new HashMap<>();
         SinkRecord recode = new SinkRecord();
 //        Map<String, Object> map = new HashMap<>(2);
 //        map.put("data_basic_wx_province", "上天");
@@ -59,14 +58,13 @@ public class ESSinkTest {
 //        map.put("id","2699999999");
 //        recode.setKeyValues(map);
 //        maps.put("2699999999",recode);
-        Map<String, Object> map = new HashMap<>(3);
-        map.put("os", "IOS");
-        map.put("NET","4G");
+        Map<String, Object> map = new HashMap<>(8);
+        map.put("os","IOS");
         map.put("id","26999998000");
 //        map.put("device_id","2699999999");
         Map<String, Object> usermap = new HashMap<>(3);
-        usermap.put("id","7888888");
-        usermap.put("data_basic_wx_nickname","北京");
+        usermap.put("id","352436522");
+        usermap.put("data_basic_idcard_name","北京");
         map.put(USER,usermap);
         recode.setKeyValues(map);
         recode.setRowKey("this is rowkey");
