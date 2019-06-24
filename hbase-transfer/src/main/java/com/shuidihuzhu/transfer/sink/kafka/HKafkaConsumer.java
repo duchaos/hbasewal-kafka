@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.util.*;
 
+import static com.shuidihuzhu.transfer.model.Config.openSwitch;
+
 /**
  * Created by apple on 18/11/14.
  */
@@ -42,12 +44,9 @@ public class HKafkaConsumer implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                consumer(groupId, topic, fromStart);
-            }
-        }, "kafkaConsumerThread").start();
+        if (openSwitch) {
+            new Thread(() -> consumer(groupId, topic, fromStart), "kafkaConsumerThread").start();
+        }
     }
 
 

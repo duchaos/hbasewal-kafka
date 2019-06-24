@@ -16,6 +16,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.Properties;
 
+import static com.shuidihuzhu.transfer.model.Config.openSwitch;
+
 /**
  * Created by sunfu on 2018/12/29.
  */
@@ -66,7 +68,7 @@ public class KafkaSink extends AbstractSink {
         ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic, id, JSON.toJSONString(record));
         try {
 //            TODO  方案降级
-            if (true) {
+            if (openSwitch) {
                 procuder.send(item, new Callback() {
                     @Override
                     public void onCompletion(RecordMetadata metadata, Exception e) {

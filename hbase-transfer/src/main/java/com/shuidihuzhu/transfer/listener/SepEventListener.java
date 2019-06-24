@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
+import static com.shuidihuzhu.transfer.model.Config.openSwitch;
+
 /**
  * Created by sunfu on 2018/12/29.
  */
@@ -49,84 +51,87 @@ public class SepEventListener implements EventListener {
 
         for (SepEvent sepEvent : sepEvents) {
 
-            String table = Bytes.toString(sepEvent.getTable());
-            if (!table.equals(tableName)) {
-                continue;
-            }
-            String payload = Bytes.toString(sepEvent.getPayload());
-            SinkRecord record = new SinkRecord();
+            if (openSwitch) {
+                String table = Bytes.toString(sepEvent.getTable());
+                if (!table.equals(tableName)) {
+                    continue;
+                }
+                String payload = Bytes.toString(sepEvent.getPayload());
+                SinkRecord record = new SinkRecord();
 
-            Map<String, Object> keyValues = Maps.newHashMap();
-            String rowKey = null;
-            String id = null;
-            boolean isErrRowKey = false;
-            for (Cell cell : sepEvent.getKeyValues()) {
-                rowKey = Bytes.toString(CellUtil.cloneRow(cell));
+                Map<String, Object> keyValues = Maps.newHashMap();
+                String rowKey = null;
+                String id = null;
+                boolean isErrRowKey = false;
+                for (Cell cell : sepEvent.getKeyValues()) {
+                    rowKey = Bytes.toString(CellUtil.cloneRow(cell));
 
-                if (rowKey.contains("-") || rowKey.contains(":") == false || rowKey.split(":").length < 2) {
-                    logger.warn("Discarded --- rowKey=" + rowKey);
-                    isErrRowKey = true;
-                    break;
+                    if (rowKey.contains("-") || rowKey.contains(":") == false || rowKey.split(":").length < 2) {
+                        logger.warn("Discarded --- rowKey=" + rowKey);
+                        isErrRowKey = true;
+                        break;
+                    }
+
+                    id = rowKey.split(":")[1];
+
+                    try {
+                        Long.parseLong(id);
+                    } catch (NumberFormatException e) {
+                        logger.warn("Discarded --- rowKey=" + rowKey + ", not long type : " + id);
+                        isErrRowKey = true;
+                        break;
+                    }
+
+                    long timestamp = cell.getTimestamp();
+                    String family = Bytes.toString(CellUtil.cloneFamily(cell));
+                    String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
+                    String value = Bytes.toString(CellUtil.cloneValue(cell));
+
+                    record.setTable(table);
+                    record.setFamily(family);
+                    record.setQualifier(qualifier);
+                    record.setRowKey(rowKey);
+                    record.setTimestamp(timestamp);
+                    record.setValue(value);
+                    record.setPayload(payload);
+
+                    String column = "";
+                    if (family.equals("data")) {
+                        column = family + "_" + qualifier;
+                    } else {
+                        column = qualifier;
+                    }
+
+                    if (column.contains(".")) {
+                        column = column.replace(".", "_");
+                    }
+
+                    record.setColumn(column);
+                    keyValues.put(column, value);
                 }
 
-                id = rowKey.split(":")[1];
+                if (isErrRowKey) {
+                    continue;
+                }
+
+                keyValues.put("id", id);
+                record.setKeyValues(keyValues);
 
                 try {
-                    Long.parseLong(id);
-                } catch (NumberFormatException e) {
-                    logger.warn("Discarded --- rowKey=" + rowKey + ", not long type : " + id);
-                    isErrRowKey = true;
-                    break;
+                    kafkaSink.sink(record);
+                } catch (Exception e) {
+                    logger.error("kafka sink error.", e);
+                    System.err.println("kafka error=" + SinkRecord.getText(record));
                 }
 
-                long timestamp = cell.getTimestamp();
-                String family = Bytes.toString(CellUtil.cloneFamily(cell));
-                String qualifier = Bytes.toString(CellUtil.cloneQualifier(cell));
-                String value = Bytes.toString(CellUtil.cloneValue(cell));
-
-                record.setTable(table);
-                record.setFamily(family);
-                record.setQualifier(qualifier);
-                record.setRowKey(rowKey);
-                record.setTimestamp(timestamp);
-                record.setValue(value);
-                record.setPayload(payload);
-
-                String column = "";
-                if (family.equals("data")) {
-                    column = family + "_" + qualifier;
-                } else {
-                    column = qualifier;
-                }
-
-                if (column.contains(".")) {
-                    column = column.replace(".", "_");
-                }
-
-                record.setColumn(column);
-                keyValues.put(column, value);
-            }
-
-            if (isErrRowKey) {
-                continue;
-            }
-
-            keyValues.put("id", id);
-            record.setKeyValues(keyValues);
-
-            try {
-                kafkaSink.sink(record);
-            } catch (Exception e) {
-                logger.error("kafka sink error.", e);
-                System.err.println("kafka error=" + SinkRecord.getText(record));
-            }
-
+            }else {
 //        TODO 降级方案
 
-            try {
-                publishMessage(sepEvent);
-            } catch (Exception e) {
-                logger.error("kafka sink error.", e);
+                try {
+                    publishMessage(sepEvent);
+                } catch (Exception e) {
+                    logger.error("kafka sink error.", e);
+                }
             }
         }
     }
