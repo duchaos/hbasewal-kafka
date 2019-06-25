@@ -22,6 +22,9 @@ public class SepEventTranslator {
      */
     public TransferEnum translateTo(SinkRecord record) {
         TransferEnum transferEnum = TransferEnum.getEnumWithTable(Bytes.toString(sepEvent.getTable()));
+        if (null==transferEnum){
+            return null;
+        }
         transferEnum.parse(record,sepEvent);
         clear(); // clear the translator
         return transferEnum;

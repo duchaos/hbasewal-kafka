@@ -7,6 +7,7 @@ import com.shuidihuzhu.transfer.enums.TransferEnum;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import com.shuidihuzhu.transfer.service.SepEventTranslator;
 import com.shuidihuzhu.transfer.sink.kafka.KafkaSink;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -124,7 +125,7 @@ public class SepEventListener implements EventListener {
                     System.err.println("kafka error=" + SinkRecord.getText(record));
                 }
 
-            }else {
+            } else {
 //        TODO 降级方案
 
                 try {
@@ -166,6 +167,9 @@ public class SepEventListener implements EventListener {
     private void publish(KafkaSink kafkaSink, final SepEventTranslator translator) {
         SinkRecord sinkRecord = new SinkRecord();
         TransferEnum transferEnum = translator.translateTo(sinkRecord);
+        if (null == transferEnum && StringUtils.isBlank(transferEnum.getTopic())) {
+            return;
+        }
         kafkaSink.sink(transferEnum.getTopic(), sinkRecord);
     }
 
