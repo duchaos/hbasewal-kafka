@@ -86,7 +86,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
     }
 
     /**
-     *
      * @param recordList 需要处理的数据
      * @return {@link JestResult }
      * @throw
@@ -102,7 +101,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
     }
 
     /**
-     *
      * @param recordList  需要处理的数据
      * @param bulkBuilder es bulkBuilder
      * @return {@link JestResult }
@@ -265,7 +263,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         Get get = new Get.Builder(indexName, id).type(typeName).build();
         JestResult result = client.execute(get);
         if (!result.isSucceeded()) {
-            throw new Exception("searchDocumentById error.msg=" + result.getErrorMessage());
+            logger.warn("searchDocumentById error.msg=" + result.getErrorMessage());
         }
         return result;
     }
