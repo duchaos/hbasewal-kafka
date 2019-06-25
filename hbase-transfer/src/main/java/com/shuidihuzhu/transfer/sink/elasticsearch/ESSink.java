@@ -127,6 +127,9 @@ public class ESSink extends AbstractSink implements InitializingBean {
         Index index = null;
         Map<String, String> idAndRowKeyMap = new HashMap();
         for (SinkRecord record : recordMap.values()) {
+            if(record==null){
+                continue;
+            }
             Map<String, Object> keyValues = record.getKeyValues();
             String id = String.valueOf(keyValues.get("id"));
             if (!StringUtils.isEmpty(id)) {
