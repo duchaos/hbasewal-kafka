@@ -75,19 +75,21 @@ public class DeviceInfoESSink extends ESSink {
                 try {
                     boolean flag = false;
                     JestResult jestResult = searchDocumentById(SDHZ_DEVICE_INFO_REALTIME.getIntex(), SDHZ_DEVICE_INFO_REALTIME.getType(), device_Id);
-                    Map<String, Object> deviceInfoMap = jestResult.getSourceAsObject(Map.class);
-                    for (Map.Entry<String, Object> entry : deviceInfoMap.entrySet()) {
-                        if (map.containsKey(entry.getKey()) && !map.get(entry.getKey()).equals(entry.getValue())) {
-                            entry.setValue(map.get(entry.getKey()));
-                            flag = true;
+                    if (jestResult.isSucceeded()) {
+                        Map<String, Object> deviceInfoMap = jestResult.getSourceAsObject(Map.class);
+                        for (Map.Entry<String, Object> entry : deviceInfoMap.entrySet()) {
+                            if (map.containsKey(entry.getKey()) && !map.get(entry.getKey()).equals(entry.getValue())) {
+                                entry.setValue(map.get(entry.getKey()));
+                                flag = true;
+                            }
                         }
-                    }
-                    if (flag) {
-                        map = deviceInfoMap;
+                        if (flag) {
+                            map = deviceInfoMap;
+                        }
                     }
 
                 } catch (Exception e) {
-                    logger.error("DeviceInfoESSink.updateHandleWithBuilder", e);
+                    logger.error("DeviceInfoESSink.updateHandleWithBuilder getDeviceId:{}", device_Id, e);
                 }
             }
         }
@@ -105,10 +107,12 @@ public class DeviceInfoESSink extends ESSink {
 //        包含userId，根据userId 查询es
         try {
             JestResult jestResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), userId);
-            userInfoMap = jestResult.getSourceAsObject(Map.class);
-            map.put("user", userInfoMap);
+            if (jestResult.isSucceeded()) {
+                userInfoMap = jestResult.getSourceAsObject(Map.class);
+                map.put("user", userInfoMap);
+            }
         } catch (Exception e) {
-            logger.error("DeviceInfoESSink.updateHandleWithBuilder", e);
+            logger.error("DeviceInfoESSink.updateHandleWithBuilder userId:{}", userId, e);
         }
         return map;
     }
