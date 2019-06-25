@@ -66,29 +66,6 @@ public class DeviceInfoESSink extends ESSink {
             return hashMap;
         } else {
 //            否则都是设备画像自己更新的
-            Object idObj = map.get("id");
-            if (idObj != null) {
-                String device_Id = String.valueOf(idObj);
-                try {
-                    boolean flag = false;
-                    JestResult jestResult = searchDocumentById(SDHZ_DEVICE_INFO_REALTIME.getIntex(), SDHZ_DEVICE_INFO_REALTIME.getType(), device_Id);
-                    if (jestResult.isSucceeded()) {
-                        Map<String, Object> deviceInfoMap = jestResult.getSourceAsObject(Map.class);
-                        for (Map.Entry<String, Object> entry : deviceInfoMap.entrySet()) {
-                            if (map.containsKey(entry.getKey()) && !map.get(entry.getKey()).equals(entry.getValue())) {
-                                entry.setValue(map.get(entry.getKey()));
-                                flag = true;
-                            }
-                        }
-                        if (flag) {
-                            map = deviceInfoMap;
-                        }
-                    }
-
-                } catch (Exception e) {
-                    logger.error("DeviceInfoESSink.updateHandleWithBuilder getDeviceId:{}", device_Id, e);
-                }
-            }
             Object userIdObj = map.get(USER_ID);
             if (null == userIdObj) {
                 return map;
@@ -116,10 +93,5 @@ public class DeviceInfoESSink extends ESSink {
             }
         }
         return map;
-    }
-
-    @Override
-    public JestResult afterUpdateProcess(Map<String, SinkRecord> recordMap, JestResult result) throws Exception {
-        return batchInsertAction(recordMap, bulkBuilder);
     }
 }
