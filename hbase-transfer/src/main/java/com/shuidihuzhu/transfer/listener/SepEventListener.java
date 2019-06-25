@@ -167,7 +167,7 @@ public class SepEventListener implements EventListener {
     private void publish(KafkaSink kafkaSink, final SepEventTranslator translator) {
         SinkRecord sinkRecord = new SinkRecord();
         TransferEnum transferEnum = translator.translateTo(sinkRecord);
-        if (null == transferEnum && StringUtils.isBlank(transferEnum.getTopic())) {
+        if (null == transferEnum || StringUtils.isBlank(transferEnum.getTopic())) {
             return;
         }
         kafkaSink.sink(transferEnum.getTopic(), sinkRecord);

@@ -30,6 +30,10 @@ public enum TransferEnum {
             return "detail";
         }
 
+        public String getTopic() {
+            return "hbase-tranfer-device";
+        }
+
         public TransferEnum  syncToIndexEnum() {
             return null;
         }
