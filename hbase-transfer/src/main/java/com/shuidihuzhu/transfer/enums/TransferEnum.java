@@ -51,7 +51,7 @@ public enum TransferEnum {
             for (Cell cell : sepEvent.getKeyValues()) {
                 rowKey = Bytes.toString(CellUtil.cloneRow(cell));
 
-                if (rowKey.contains("-") || !rowKey.contains(":") || rowKey.split(":").length < 2) {
+                if (!rowKey.contains(":") || rowKey.split(":").length < 2) {
                     log.warn("Discarded --- rowKey=" + rowKey);
                     isErrRowKey = true;
                     break;

@@ -1,6 +1,7 @@
 package com.shuidihuzhu.transfer.controller;
 
 import com.shuidihuzhu.transfer.model.Response;
+import com.shuidihuzhu.transfer.sink.elasticsearch.ESSink;
 import com.shuidihuzhu.transfer.sink.kafka.HKafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,10 +19,13 @@ public class KafkaController {
     @Autowired
     private HKafkaConsumer hKafkaConsumer;
 
+    @Autowired
+    private ESSink userInfoESSink;
+
     @RequestMapping(value="/consumer", method = {RequestMethod.GET, RequestMethod.POST})
     public @ResponseBody Response add(String groupId,String topic,String fromStart){
         try{
-            hKafkaConsumer.consumer(groupId, topic, fromStart);
+            hKafkaConsumer.consumer(groupId, topic, fromStart,userInfoESSink);
         }catch (Exception e){
             logger.error("add peer error.",e);
             return Response.getInstance(Response.SYSTEM_SERVER_ERROR);

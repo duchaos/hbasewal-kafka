@@ -31,6 +31,7 @@ public class UserInfoESSink extends ESSink {
     @Override
     public void batchSink(List<SinkRecord> recordList) {
         try {
+
             JestResult jestResult = batchUpdateAction(recordList, bulkBuilder);
             if (!jestResult.isSucceeded()) {
                 logger.error("UserInfoESSink.batchSink error！");
@@ -40,33 +41,34 @@ public class UserInfoESSink extends ESSink {
             TransferEnum sycnToIndex = SDHZ_USER_INFO_REALTIME.syncToIndexEnum();
             if (null != sycnToIndex) {
                 Bulk.Builder syncBuild = new Bulk.Builder().defaultIndex(sycnToIndex.getIntex()).defaultType(sycnToIndex.getType());
-                SinkRecord sinkRecord = recordList.get(0);
-                Map<String, Object> valueMap = sinkRecord.getKeyValues();
-                if (MapUtils.isEmpty(valueMap)) {
-                    return;
-                }
-                Object idObj = valueMap.get("id");
-                if (idObj == null || StringUtils.isBlank("" + idObj)) {
-                    return;
-                }
+                for (SinkRecord sinkRecord : recordList) {
 
-                JestResult userInfoResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), String.valueOf(idObj));
-                if (userInfoResult.isSucceeded()) {
-                    Map<String, Object> userInfoMap = userInfoResult.getSourceAsObject(Map.class);
-                    if (MapUtils.isEmpty(userInfoMap)) {
+                    Map<String, Object> valueMap = sinkRecord.getKeyValues();
+                    if (MapUtils.isEmpty(valueMap)) {
                         return;
                     }
-                    if (userInfoMap.containsKey(DEVICE_ID)) {
-                        Map<String, Object> paramMap = new HashMap<>();
-                        for (Map.Entry<String, Object> entry : userInfoMap.entrySet()) {
-                            if (!entry.getKey().contains("es_metadata")) {
-                                paramMap.put(entry.getKey(), entry.getValue());
+                    Object idObj = valueMap.get("id");
+                    if (idObj == null || StringUtils.isBlank("" + idObj)) {
+                        return;
+                    }
+                    JestResult userInfoResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), String.valueOf(idObj));
+                    Map<String, Object> paramMap = new HashMap<>();
+                    if (userInfoResult.isSucceeded()) {
+                        Map<String, Object> userInfoMap = userInfoResult.getSourceAsObject(Map.class);
+                        if (MapUtils.isEmpty(userInfoMap)) {
+                            return;
+                        }
+                        if (userInfoMap.containsKey(DEVICE_ID)) {
+                            for (Map.Entry<String, Object> entry : userInfoMap.entrySet()) {
+                                if (!entry.getKey().contains("es_metadata")) {
+                                    paramMap.put(entry.getKey(), entry.getValue());
+                                }
                             }
                         }
-                        sinkRecord.setKeyValues(paramMap);
-                        deviceInfoESSink.batchUpdateAction(recordList, syncBuild);
                     }
+                    sinkRecord.setKeyValues(paramMap);
                 }
+                deviceInfoESSink.batchUpdateAction(recordList, syncBuild);
             }
         } catch (Exception e) {
             logger.error("UserInfoESSink.batchSink into es error.", e);

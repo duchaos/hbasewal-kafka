@@ -116,7 +116,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
     }
 
     public JestResult batchInsertAction(Map<String, SinkRecord> recordMap, Bulk.Builder bulkBuilder) throws Exception {
-        System.out.println("batchInsertAction ===> start...  " + recordMap.size());
         Map<String, String> idAndRowKeyMap = recordPreInsert(recordMap, bulkBuilder);
         JestResult result = client.execute(bulkBuilder.build());
         result = afterInsertProcess(recordMap, idAndRowKeyMap, result);
