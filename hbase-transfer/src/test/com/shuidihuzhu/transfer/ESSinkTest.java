@@ -1,5 +1,6 @@
 package com.shuidihuzhu.transfer;
 
+import com.alibaba.fastjson.JSON;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import com.shuidihuzhu.transfer.sink.elasticsearch.ESSink;
 import io.searchbox.client.JestResult;
@@ -11,8 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.hadoop.yarn.webapp.Params.USER;
 
 
 /**
@@ -38,10 +37,9 @@ public class ESSinkTest extends TestBase{
 //        map.put("user",userMap);
         SinkRecord recode = new SinkRecord();
         Map<String, Object> map = new HashMap<>(3);
-        map.put("data_basic_wx_nickname", "啦啦");
-        map.put("data_basic_wx_province", "四川");
-        map.put("id","7888888");
-        map.put("device_id","26999998000");
+        map.put("data_device_id", "866488039800000");
+        map.put("data_basic_idcard_city", "呼和浩特");
+        map.put("id","352436579");
         recode.setKeyValues(map);
         recode.setRowKey("this is rowkey");
         list.add(recode);
@@ -59,13 +57,14 @@ public class ESSinkTest extends TestBase{
 //        recode.setKeyValues(map);
 //        maps.put("2699999999",recode);
         Map<String, Object> map = new HashMap<>(8);
-        map.put("os","IOS");
-        map.put("id","26999998000");
+        map.put("data_dev_device_type","荣耀 大家玩");
+        map.put("data_dev_user_id",352436581);
+        map.put("id","866488039800077");
 //        map.put("device_id","2699999999");
         Map<String, Object> usermap = new HashMap<>(3);
-        usermap.put("id","352436522");
-        usermap.put("data_basic_idcard_name","北京");
-        map.put(USER,usermap);
+        usermap.put("id","767761440");
+        usermap.put("data_basic_idcard_name","上海");
+//        map.put(USER,usermap);
         recode.setKeyValues(map);
         recode.setRowKey("this is rowkey");
         List<SinkRecord> list = new ArrayList<>();
@@ -75,7 +74,14 @@ public class ESSinkTest extends TestBase{
 
     @Test
     public void searchDocumentById() throws Exception {
-        JestResult jestResult = userInfoESSink.searchDocumentById("sdhz_user_info_realtime", "detail", "269381854");
+        JestResult jestResult = userInfoESSink.searchDocumentById("sdhz_user_info_realtime", "detail", "719471962");
+        if (jestResult.isSucceeded()){
+            Map sourceAsObject = jestResult.getSourceAsObject(Map.class);
+
+            System.out.println(JSON.toJSONString(sourceAsObject));
+
+        }
+
 
     }
 }

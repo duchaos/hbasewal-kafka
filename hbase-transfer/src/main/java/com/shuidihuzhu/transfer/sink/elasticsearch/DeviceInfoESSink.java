@@ -49,32 +49,24 @@ public class DeviceInfoESSink extends ESSink {
      */
     @Override
     public Map<String, Object> updateHandleWithBuilder(Map<String, Object> map) {
-//       获取的是用户画像传来的用户id
-        Object idObj = map.get("id");
+//       如果是用户画像调用的，必含DEVICE_ID
         Object deviceIdObj = map.get(DEVICE_ID);
         String deviceId = String.valueOf(deviceIdObj);
-        Object userIdObj = map.get(USER_ID);
         if (null != deviceIdObj && StringUtils.isNotBlank(deviceId)) {
 //           deviceId有效，说明用户画像更新调用,需要替换后续index 的id
+            Object userIdObj = map.get("id");
             map.put("id", deviceId);
 //            用户画像带来的信息，都是属于user 的
             map.remove(DEVICE_ID);
 
-//        更新设备画像不包含 userId 的 情况，不作处理；
-//        但也有可能是用户画像掉的，返回更新用户信息的map
-            if (null == userIdObj) {
-                HashMap<String, Object> hashMap = new HashMap<>(2);
-                hashMap.put(USER, map);
-                for (String key : map.keySet()) {
-                    if (key.contains("es_metadata")){
-                        map.remove(key);
-                    }
-                }
-                map.put("id", idObj == null ? "" : String.valueOf(idObj));
-                hashMap.put("id", deviceId);
-                return hashMap;
-            }
+            HashMap<String, Object> hashMap = new HashMap<>(2);
+            hashMap.put(USER, map);
+            map.put("id", userIdObj == null ? "" : String.valueOf(userIdObj));
+            hashMap.put("id", deviceId);
+            return hashMap;
         } else {
+//            否则都是设备画像自己更新的
+            Object idObj = map.get("id");
             if (idObj != null) {
                 String device_Id = String.valueOf(idObj);
                 try {
@@ -97,24 +89,31 @@ public class DeviceInfoESSink extends ESSink {
                     logger.error("DeviceInfoESSink.updateHandleWithBuilder getDeviceId:{}", device_Id, e);
                 }
             }
-        }
-        if (null == userIdObj) {
-            return map;
-        }
-
-        String userId = String.valueOf(userIdObj);
-        if (StringUtils.isBlank(userId)) {
-            return map;
-        }
-//        包含userId，根据userId 查询es
-        try {
-            JestResult jestResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), userId);
-            if (jestResult.isSucceeded()) {
-                Map<String, Object> userInfoMap = jestResult.getSourceAsObject(Map.class);
-                map.put("user", userInfoMap);
+            Object userIdObj = map.get(USER_ID);
+            if (null == userIdObj) {
+                return map;
             }
-        } catch (Exception e) {
-            logger.error("DeviceInfoESSink.updateHandleWithBuilder userId:{}", userId, e);
+
+            String userId = String.valueOf(userIdObj);
+            if (StringUtils.isBlank(userId)) {
+                return map;
+            }
+//        包含userId，根据userId 查询es
+            try {
+                JestResult jestResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), userId);
+                if (jestResult.isSucceeded()) {
+                    Map<String, Object> userInfoMap = new HashMap<>();
+                    map.put(USER, userInfoMap);
+                    Map<String, Object> resultMap = jestResult.getSourceAsObject(Map.class);
+                    for (String key : resultMap.keySet()) {
+                        if (!key.contains("es_metadata")) {
+                            userInfoMap.put(key, resultMap.get(key));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("DeviceInfoESSink.updateHandleWithBuilder userId:{}", userId, e);
+            }
         }
         return map;
     }

@@ -4,10 +4,14 @@ import com.shuidihuzhu.transfer.enums.TransferEnum;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.Bulk;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_USER_INFO_REALTIME;
 
@@ -17,6 +21,7 @@ import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_USER_INFO_REALTIM
  */
 @Service
 public class UserInfoESSink extends ESSink {
+    private static final String DEVICE_ID = "data_device_id";
 
     @Resource
     private DeviceInfoESSink deviceInfoESSink;
@@ -35,7 +40,33 @@ public class UserInfoESSink extends ESSink {
             TransferEnum sycnToIndex = SDHZ_USER_INFO_REALTIME.syncToIndexEnum();
             if (null != sycnToIndex) {
                 Bulk.Builder syncBuild = new Bulk.Builder().defaultIndex(sycnToIndex.getIntex()).defaultType(sycnToIndex.getType());
-                deviceInfoESSink.batchUpdateAction(recordList, syncBuild);
+                SinkRecord sinkRecord = recordList.get(0);
+                Map<String, Object> valueMap = sinkRecord.getKeyValues();
+                if (MapUtils.isEmpty(valueMap)) {
+                    return;
+                }
+                Object idObj = valueMap.get("id");
+                if (idObj == null || StringUtils.isBlank("" + idObj)) {
+                    return;
+                }
+
+                JestResult userInfoResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), String.valueOf(idObj));
+                if (userInfoResult.isSucceeded()) {
+                    Map<String, Object> userInfoMap = userInfoResult.getSourceAsObject(Map.class);
+                    if (MapUtils.isEmpty(userInfoMap)) {
+                        return;
+                    }
+                    if (userInfoMap.containsKey(DEVICE_ID)) {
+                        Map<String, Object> paramMap = new HashMap<>();
+                        for (Map.Entry<String, Object> entry : userInfoMap.entrySet()) {
+                            if (!entry.getKey().contains("es_metadata")) {
+                                paramMap.put(entry.getKey(), entry.getValue());
+                            }
+                        }
+                        sinkRecord.setKeyValues(paramMap);
+                        deviceInfoESSink.batchUpdateAction(recordList, syncBuild);
+                    }
+                }
             }
         } catch (Exception e) {
             logger.error("UserInfoESSink.batchSink into es error.", e);
