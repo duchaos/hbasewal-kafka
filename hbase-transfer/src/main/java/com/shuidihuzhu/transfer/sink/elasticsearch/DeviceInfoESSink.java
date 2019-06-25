@@ -65,6 +65,11 @@ public class DeviceInfoESSink extends ESSink {
             if (null == userIdObj) {
                 HashMap<String, Object> hashMap = new HashMap<>(2);
                 hashMap.put(USER, map);
+                for (String key : map.keySet()) {
+                    if (key.contains("es_metadata")){
+                        map.remove(key);
+                    }
+                }
                 map.put("id", idObj == null ? "" : String.valueOf(idObj));
                 hashMap.put("id", deviceId);
                 return hashMap;
