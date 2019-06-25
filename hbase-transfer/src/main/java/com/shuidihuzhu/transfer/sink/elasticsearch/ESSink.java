@@ -263,7 +263,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         Get get = new Get.Builder(indexName, id).type(typeName).build();
         JestResult result = client.execute(get);
         if (!result.isSucceeded()) {
-            logger.warn("searchDocumentById error.msg=" + result.getErrorMessage());
+            logger.warn("searchDocumentById error ! index:{},type:{},id:{},msg:{}", indexName, typeName, id, result.getErrorMessage());
         }
         return result;
     }
