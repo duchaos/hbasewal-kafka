@@ -20,7 +20,7 @@ import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_USER_INFO_REALTIM
 @Service
 public class DeviceInfoESSink extends ESSink {
 
-    private static final String DEVICE_ID = "device_id";
+    private static final String DEVICE_ID = "data_device_id";
     private static final String USER = "user";
     private static final String USER_ID = "data_dev_user_id";
     private Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
