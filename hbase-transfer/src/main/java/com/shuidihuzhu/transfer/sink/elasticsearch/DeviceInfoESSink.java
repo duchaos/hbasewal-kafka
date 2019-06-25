@@ -3,7 +3,6 @@ package com.shuidihuzhu.transfer.sink.elasticsearch;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.Bulk;
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +22,7 @@ public class DeviceInfoESSink extends ESSink {
 
     private static final String DEVICE_ID = "device_id";
     private static final String USER = "user";
+    private static final String USER_ID = "data_dev_user_id";
     private Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
 
 
@@ -53,16 +53,16 @@ public class DeviceInfoESSink extends ESSink {
         Object idObj = map.get("id");
         Object deviceIdObj = map.get(DEVICE_ID);
         String deviceId = String.valueOf(deviceIdObj);
-        Map<String, Object> userInfoMap = (Map<String, Object>) map.get("user");
+        Object userIdObj = map.get(USER_ID);
         if (null != deviceIdObj && StringUtils.isNotBlank(deviceId)) {
 //           deviceId有效，说明用户画像更新调用,需要替换后续index 的id
             map.put("id", deviceId);
 //            用户画像带来的信息，都是属于user 的
             map.remove(DEVICE_ID);
 
-//        不包含 userId 的 情况 ，不作处理；
-//        其中，也有可能是用户画像掉的，返回更新用户信息的map
-            if (MapUtils.isEmpty(userInfoMap) || !userInfoMap.containsKey("id")) {
+//        更新设备画像不包含 userId 的 情况，不作处理；
+//        但也有可能是用户画像掉的，返回更新用户信息的map
+            if (null == userIdObj) {
                 HashMap<String, Object> hashMap = new HashMap<>(2);
                 hashMap.put(USER, map);
                 map.put("id", idObj == null ? "" : String.valueOf(idObj));
@@ -93,22 +93,19 @@ public class DeviceInfoESSink extends ESSink {
                 }
             }
         }
-        if (MapUtils.isEmpty(userInfoMap)) {
+        if (null == userIdObj) {
             return map;
         }
 
-        String userId = "";
-        if (userInfoMap.containsKey("id")) {
-            userId = String.valueOf(userInfoMap.get("id"));
-            if (StringUtils.isBlank(userId)) {
-                return map;
-            }
+        String userId = String.valueOf(userIdObj);
+        if (StringUtils.isBlank(userId)) {
+            return map;
         }
 //        包含userId，根据userId 查询es
         try {
             JestResult jestResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), userId);
             if (jestResult.isSucceeded()) {
-                userInfoMap = jestResult.getSourceAsObject(Map.class);
+                Map<String, Object> userInfoMap = jestResult.getSourceAsObject(Map.class);
                 map.put("user", userInfoMap);
             }
         } catch (Exception e) {
