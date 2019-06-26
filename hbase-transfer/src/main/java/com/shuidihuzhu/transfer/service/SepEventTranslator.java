@@ -21,6 +21,9 @@ public class SepEventTranslator {
      * Translate a data representation into fields set in given event
      */
     public TransferEnum translateTo(SinkRecord record) {
+//        FIXME  从ZK取配置 ，解析规则共用一套
+//        定义不同表的前缀 rowkey -》 id
+//        eg： a001:id -> id
         TransferEnum transferEnum = TransferEnum.getEnumWithTable(Bytes.toString(sepEvent.getTable()));
         if (null==transferEnum){
             return null;

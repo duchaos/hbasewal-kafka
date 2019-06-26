@@ -30,16 +30,22 @@ public class UserInfoESSink extends ESSink {
     @Override
     public void batchSink(List<SinkRecord> recordList) {
         try {
-            Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIntex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
+            Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIndex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
             JestResult jestResult = batchUpdateAction(recordList, bulkBuilder);
             if (!jestResult.isSucceeded()) {
                 logger.error("UserInfoESSink.batchSink error！");
                 return;
             }
+
+        } catch (Exception e) {
+            logger.error("UserInfoESSink.batchSink into es error.", e);
+            handleBatchErrorRecord(recordList);
+        }
+        try {
 //           获取更新结果，更新成功后，需要同步更新 设备画像表
             TransferEnum sycnToIndex = SDHZ_USER_INFO_REALTIME.syncToIndexEnum();
             if (null != sycnToIndex) {
-                Bulk.Builder syncBuild = new Bulk.Builder().defaultIndex(sycnToIndex.getIntex()).defaultType(sycnToIndex.getType());
+                Bulk.Builder syncBuild = new Bulk.Builder().defaultIndex(sycnToIndex.getIndex()).defaultType(sycnToIndex.getType());
                 for (SinkRecord sinkRecord : recordList) {
 
                     Map<String, Object> valueMap = sinkRecord.getKeyValues();
@@ -50,7 +56,7 @@ public class UserInfoESSink extends ESSink {
                     if (idObj == null || StringUtils.isBlank("" + idObj)) {
                         return;
                     }
-                    JestResult userInfoResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), String.valueOf(idObj));
+                    JestResult userInfoResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), String.valueOf(idObj));
                     Map<String, Object> paramMap = new HashMap<>();
                     if (userInfoResult.isSucceeded()) {
                         Map<String, Object> userInfoMap = userInfoResult.getSourceAsObject(Map.class);
@@ -77,7 +83,7 @@ public class UserInfoESSink extends ESSink {
 
     @Override
     public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
-        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIntex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIndex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
         return batchInsertAction(rejectedRecordMap, bulkBuilder);
     }
 }

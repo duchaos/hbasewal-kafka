@@ -1,6 +1,7 @@
 package com.shuidihuzhu.transfer.controller;
 
 import com.google.common.collect.Maps;
+import com.shuidihuzhu.transfer.enums.TransferEnum;
 import com.shuidihuzhu.transfer.model.Response;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import com.shuidihuzhu.transfer.sink.elasticsearch.ESSink;
@@ -37,7 +38,7 @@ public class EsController {
             Map<String, Object> keyValues = Maps.newHashMap();
             keyValues.put("xx","yy");
             record.setKeyValues(keyValues);
-            userInfoESSink.sink(record);
+            userInfoESSink.sink(TransferEnum.SDHZ_USER_INFO_REALTIME.getTopic(), record);
         }catch (Exception e){
             logger.error("add peer error.",e);
             return Response.getInstance(Response.SYSTEM_SERVER_ERROR);

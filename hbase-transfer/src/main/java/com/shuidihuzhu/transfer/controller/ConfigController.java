@@ -2,7 +2,6 @@ package com.shuidihuzhu.transfer.controller;
 
 import com.shuidihuzhu.transfer.model.Config;
 import com.shuidihuzhu.transfer.model.Response;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,15 +28,4 @@ public class ConfigController {
         }
         return Response.makeSuccess(null);
     }
-
-    @GetMapping(value = "/switch")
-    public Response switchFlag(String flag) {
-        if (flag.equals("true")) {
-            Config.openSwitch = true;
-        } else if (flag.equals("false")) {
-            Config.openSwitch = false;
-        }
-        return Response.makeSuccess(null);
-    }
-
 }

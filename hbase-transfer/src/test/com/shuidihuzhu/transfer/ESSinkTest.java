@@ -50,23 +50,10 @@ public class ESSinkTest extends TestBase{
     public void batchInsertAction() throws Exception {
         Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex("sdhz_device_info_realtime").defaultType("detail");
         SinkRecord recode = new SinkRecord();
-//        Map<String, Object> map = new HashMap<>(2);
-//        map.put("id","2699999999");
-//        recode.setKeyValues(map);
-//        maps.put("2699999999",recode);
         Map<String, Object> map = new HashMap<>(8);
-        map.put("data_dev_device_type", "荣耀 回家玩");
-        map.put(" data:basic_idcard_sex", "3232");
-        map.put("data_basic_wx_province", "上天");
-        map.put("data_basic_wx_nickname", "三大爷");
-        map.put(" data:basic_idcard_sea", "2323");
-//        map.put(" data:basic_idcard_sev", "1");
-//        map.put(" data:basic_idcard_sex", "1");
-//        map.put(" data:basic_idcard_see", "1");
-//        map.put(" data:basic_idcard_ses", "1");
-//        map.put(" data:basic_idcard_seq", "1");
-        map.put("data_dev_user_id", 352436581);
-        map.put("id", "866488039800077");
+        map.put("data_dev_device_type", "荣耀 大师答玩");
+        map.put("data_dev_user_id", "719471962");
+        map.put("id", "FE1CB01E-CE25-40C3-A2E1YYY");
 //        map.put("device_id","2699999999");
         Map<String, Object> usermap = new HashMap<>(3);
         usermap.put("id","767761440");

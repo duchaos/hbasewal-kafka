@@ -18,6 +18,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -286,7 +287,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
         return result;
     }
 
-    public JestResult searchDocumentById(String indexName, String typeName, String id) throws Exception {
+    public JestResult searchDocumentById(String indexName, String typeName, String id) throws IOException {
         Get get = new Get.Builder(indexName, id).type(typeName).build();
         JestResult result = client.execute(get);
         if (!result.isSucceeded()) {

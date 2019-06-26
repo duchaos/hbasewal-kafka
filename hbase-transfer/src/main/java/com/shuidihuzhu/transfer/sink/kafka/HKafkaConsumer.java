@@ -50,6 +50,7 @@ public class HKafkaConsumer implements InitializingBean {
     public void afterPropertiesSet() throws Exception {
 //        if (openSwitch) {
         new Thread(() -> consumer(groupId, topic, fromStart, userInfoESSink), "kafkaConsumerThread").start();
+
         new Thread(() -> consumer(deviceGroupId, deviceTopic, fromStart, deviceInfoESSink), "kafkaDeviceConsumerThread").start();
 //        }
     }

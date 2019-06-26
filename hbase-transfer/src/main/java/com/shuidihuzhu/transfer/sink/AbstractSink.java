@@ -9,8 +9,7 @@ import java.util.List;
  */
 public abstract class AbstractSink {
 
-    public  void sink(SinkRecord record){};
-    public  void sink(String topic,SinkRecord record){};
+    public  void sink(String topic, SinkRecord record){};
 
     public  void batchSink(List<SinkRecord> records){};
 

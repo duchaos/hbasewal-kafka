@@ -29,7 +29,7 @@ public class DeviceInfoESSink extends ESSink {
     @Override
     public void batchSink(List<SinkRecord> recordList) {
         try {
-            Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
+            Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIndex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
             batchUpdateAction(recordList, bulkBuilder);
         } catch (Exception e) {
             logger.error("DeviceInfoESSink.batchSink into es error.", e);
@@ -60,50 +60,70 @@ public class DeviceInfoESSink extends ESSink {
 //            用户画像带来的信息，都是属于user 的
             map.remove(DEVICE_ID);
 
-            HashMap<String, Object> hashMap = new HashMap<>(2);
-            hashMap.put(USER, map);
+            HashMap<String, Object> deviceUpdateMap = new HashMap<>(2);
+            deviceUpdateMap.put(USER, map);
             map.put("id", userIdObj == null ? "" : String.valueOf(userIdObj));
-            hashMap.put("id", deviceId);
-            return hashMap;
+            deviceUpdateMap.put("id", deviceId);
+            return deviceUpdateMap;
         } else {
-//            否则都是设备画像自己更新的
-            Object userIdObj = map.get(USER_ID);
-            if (null == userIdObj) {
+//            否则都是设备画像自己更新的,判断是否需要更userId
+//            这里需要查询一次设备画像，获取现在的 dev_user_id
+            Object idObj = map.get("id");
+            if (null == idObj) {
                 return map;
             }
-
-            String userId = String.valueOf(userIdObj);
-            if (StringUtils.isBlank(userId)) {
+            Object userIdInDeviceObj = map.get(USER_ID);
+//            没带useId，直接返回
+            if (null == userIdInDeviceObj) {
+                logger.warn("DeviceInfoESSink.updateHandleWithBuilder 丢失用户id,deviceId:{}",deviceId);
                 return map;
             }
-//        包含userId，根据userId 查询es
+            String userIdFromDevice = String.valueOf(userIdInDeviceObj);
+            String device_id = String.valueOf(idObj);
             try {
-                JestResult jestResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), userId);
-                if (jestResult.isSucceeded()) {
-                    Map<String, Object> resultMap = jestResult.getSourceAsObject(Map.class);
-                    if (MapUtils.isEmpty(resultMap)) {
-                        return map;
-                    }
-                    Map<String, Object> userInfoMap = new HashMap<>();
-                    for (String key : resultMap.keySet()) {
-                        if (!key.contains("es_metadata")) {
-                            userInfoMap.put(key, resultMap.get(key));
-                        }
-                    }
-                    map.put(USER, userInfoMap);
+                JestResult jestResult = searchDocumentById(SDHZ_DEVICE_INFO_REALTIME.getIndex(), SDHZ_DEVICE_INFO_REALTIME.getType(), device_id);
+                if (!jestResult.isSucceeded()) {
+                    return map;
+                }
+//                resultMap 是查询到原有的设备信息map
+                Map<String, Object> resultMap = jestResult.getSourceAsObject(Map.class);
+                if (MapUtils.isEmpty(resultMap)) {
+                    return map;
+                }
+//              获取userId ,和map中的对比，如果有变更，拉去map信息，没有则直接返回
+                Object userIdObj = resultMap.get(USER_ID);
+                if (null == userIdObj) {
+                    return map;
+                }
+                String userId = String.valueOf(userIdObj);
+//           userId 没有改变，不需要更新用户信息，直接返回
+                if (userIdFromDevice.equals(userId)) {
+                    return map;
                 }
 
+//        userId 改变，需要拉去最新的userInfo
+                JestResult userResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), userIdFromDevice);
+//            用户信息获取失败，不做处理
+                if (!userResult.isSucceeded()) {
+                    return map;
+                }
+                Map<String, Object> newUserInfoMap = jestResult.getSourceAsObject(Map.class);
+                if (MapUtils.isEmpty(newUserInfoMap)) {
+                    return map;
+                }
+                Map<String, Object> userInfoMap = new HashMap<>();
+                for (String key : newUserInfoMap.keySet()) {
+                    if (!key.contains("es_metadata")) {
+                        userInfoMap.put(key, newUserInfoMap.get(key));
+                    }
+                }
+//           放入新的用户信息
+                map.put(USER, userInfoMap);
             } catch (Exception e) {
-                logger.error("DeviceInfoESSink.updateHandleWithBuilder userId:{}", userId, e);
+                logger.error("DeviceInfoESSink.updateHandleWithBuilder userId:{}", userIdFromDevice, e);
             }
         }
         return map;
-    }
-
-    @Override
-    public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
-        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
-        return batchInsertAction(rejectedRecordMap, bulkBuilder);
     }
 
     @Override
@@ -111,37 +131,33 @@ public class DeviceInfoESSink extends ESSink {
         if (MapUtils.isEmpty(recordMap)) {
             return result;
         }
-//       查设备信息
-        for (Map.Entry<String, SinkRecord> entry : recordMap.entrySet()) {
+//        这里来判断是否有更新user信息，更新的需要 insert 到 设备画像
+        Map<String, SinkRecord> deviceUpdateMap = new HashMap<>();
+        for (Map.Entry<String, SinkRecord> entry : deviceUpdateMap.entrySet()) {
             SinkRecord record = entry.getValue();
-            if (record == null) {
+            if (null == record) {
                 continue;
             }
             Map<String, Object> keyValues = record.getKeyValues();
             if (MapUtils.isEmpty(keyValues)) {
                 continue;
             }
-            String deviceId = entry.getKey();
-            JestResult jestResult = searchDocumentById(SDHZ_DEVICE_INFO_REALTIME.getIntex(), SDHZ_DEVICE_INFO_REALTIME.getType(), deviceId);
-            if (jestResult.isSucceeded()) {
-//                resultMap 是查询到原有的设备信息map
-                Map<String, Object> resultMap = jestResult.getSourceAsObject(Map.class);
-                if (MapUtils.isEmpty(resultMap)) {
-                    continue;
-                }
-//               原有的map.addAll(新的map，除用户信息)
-                Map<String, Object> deviceInfoMap = new HashMap<>();
-                for (String key : resultMap.keySet()) {
-                    if (!key.contains("user")) {
-                        deviceInfoMap.put(key, resultMap.get(key));
-                    }
-                }
-                deviceInfoMap.putAll(keyValues);
-                record.setKeyValues(deviceInfoMap);
+            Map<String, Object> userInfoMap = (Map<String, Object>) keyValues.get(USER);
+            if (MapUtils.isEmpty(userInfoMap)) {
+                continue;
             }
+            deviceUpdateMap.put(entry.getKey(), entry.getValue());
         }
-        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
-        return batchInsertAction(recordMap, bulkBuilder);
+        if (MapUtils.isNotEmpty(deviceUpdateMap)) {
+            batchInsertAction(deviceUpdateMap);
+        }
+        return super.afterUpdateProcess(recordMap, result);
+    }
+
+    @Override
+    public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIndex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
+        return batchInsertAction(rejectedRecordMap, bulkBuilder);
     }
 
 }

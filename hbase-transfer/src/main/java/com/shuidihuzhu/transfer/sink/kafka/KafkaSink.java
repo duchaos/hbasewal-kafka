@@ -7,16 +7,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.producer.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 import java.util.Properties;
-
-import static com.shuidihuzhu.transfer.model.Config.openSwitch;
 
 /**
  * Created by sunfu on 2018/12/29.
@@ -31,12 +26,6 @@ public class KafkaSink extends AbstractSink {
 
     @Value("${hbase-transfer.kafka.bootstrap.server}")
     private String bootstrap;
-
-    @Resource
-    private KafkaTemplate<String, String> kafkaTemplate;
-
-    @Autowired
-    private KakfaSendResultHandler kakfaSendResultHandler;
 
     @PostConstruct
     public void init() {
@@ -63,46 +52,19 @@ public class KafkaSink extends AbstractSink {
     }
 
     @Override
-    public void sink(SinkRecord record) {
-        String id = String.valueOf(record.getKeyValues().get("id"));
-        ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic, id, JSON.toJSONString(record));
-        try {
-//            TODO  方案降级
-            if (openSwitch) {
-                procuder.send(item, new Callback() {
-                    @Override
-                    public void onCompletion(RecordMetadata metadata, Exception e) {
-//                    if (metadata != null) {
-//                        logger.debug("[发送成功] --- topic= " + metadata.topic() + "，partiton: " + metadata.partition() + " offset: " + metadata.offset() + ", content=" + SinkRecord.getText(record));
-//                    }
-
-                        if (e != null) {
-                            logger.error("[发送失败] --- topic= " + topic + ",失败原因：" + e.getMessage());
-                        }
-                    }
-                });
-//        TODO 方案降级
-            } else {
-                kafkaTemplate.setProducerListener(kakfaSendResultHandler);
-                kafkaTemplate.send(item);
-            }
-        } catch (Exception e) {
-            logger.error("kafka send error.", e);
-            handleErrorRecord(record);
-        }
-
-    }
-
-    @Override
     public void sink(String topic, SinkRecord record) {
+        String id = String.valueOf(record.getKeyValues().get("id"));
+        ProducerRecord<String, String> item = new ProducerRecord<>(topic, id, JSON.toJSONString(record));
         try {
-            String id = String.valueOf(record.getKeyValues().get("id"));
-            ProducerRecord<String, String> item = new ProducerRecord<String, String>(topic, id, JSON.toJSONString(record));
-            kafkaTemplate.setProducerListener(kakfaSendResultHandler);
-            kafkaTemplate.send(item);
+            procuder.send(item, (metadata, e) -> {
+                if (e != null) {
+                    logger.error("[发送失败] --- topic= " + topic + ",失败原因：" + e.getMessage());
+                }
+            });
         } catch (Exception e) {
             logger.error("kafka send error.", e);
             handleErrorRecord(record);
         }
     }
+
 }

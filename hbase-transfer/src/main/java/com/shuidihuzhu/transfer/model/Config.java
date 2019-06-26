@@ -6,5 +6,4 @@ package com.shuidihuzhu.transfer.model;
 public class Config {
     public static boolean openKafka=true;
     public static boolean openEs=true;
-    public static volatile boolean openSwitch=false;
 }

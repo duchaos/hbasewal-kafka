@@ -22,7 +22,7 @@ public enum TransferEnum {
             return "sdhz_device_info_realtime";
         }
 
-        public String getIntex() {
+        public String getIndex() {
             return "sdhz_device_info_realtime";
         }
 
@@ -36,10 +36,6 @@ public enum TransferEnum {
 
         public TransferEnum  syncToIndexEnum() {
             return null;
-        }
-
-        public TransferEnum syncFromIndexEnum() {
-            return SDHZ_USER_INFO_REALTIME;
         }
 
         public SinkRecord parse(SinkRecord record, SepEvent sepEvent) {
@@ -95,7 +91,6 @@ public enum TransferEnum {
             return record;
         }
     },
-
     SDHZ_USER_INFO_REALTIME {
         public String getTable() {
             return "sdhz_user_info_realtime";
@@ -105,16 +100,12 @@ public enum TransferEnum {
             return "hbase-tranfer";
         }
 
-        public String getIntex() {
+        public String getIndex() {
             return "sdhz_user_info_realtime";
         }
 
         public String getType() {
             return "detail";
-        }
-
-        public TransferEnum syncFromIndexEnum() {
-            return null;
         }
 
         public TransferEnum syncToIndexEnum() {
@@ -199,7 +190,7 @@ public enum TransferEnum {
         throw new AbstractMethodError();
     }
 
-    public String getIntex() {
+    public String getIndex() {
         throw new AbstractMethodError();
     }
 
@@ -208,10 +199,6 @@ public enum TransferEnum {
     }
 
     public TransferEnum syncToIndexEnum() {
-        throw new AbstractMethodError();
-    }
-
-    public TransferEnum syncFromIndexEnum() {
         throw new AbstractMethodError();
     }
 
