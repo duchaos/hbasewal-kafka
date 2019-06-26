@@ -24,13 +24,12 @@ public class DeviceInfoESSink extends ESSink {
     private static final String DEVICE_ID = "data_device_id";
     private static final String USER = "user";
     private static final String USER_ID = "data_dev_user_id";
-    private Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
-
 
 
     @Override
     public void batchSink(List<SinkRecord> recordList) {
         try {
+            Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
             batchUpdateAction(recordList, bulkBuilder);
         } catch (Exception e) {
             logger.error("DeviceInfoESSink.batchSink into es error.", e);
@@ -103,6 +102,7 @@ public class DeviceInfoESSink extends ESSink {
 
     @Override
     public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
         return batchInsertAction(rejectedRecordMap, bulkBuilder);
     }
 
@@ -140,6 +140,7 @@ public class DeviceInfoESSink extends ESSink {
                 record.setKeyValues(deviceInfoMap);
             }
         }
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
         return batchInsertAction(recordMap, bulkBuilder);
     }
 

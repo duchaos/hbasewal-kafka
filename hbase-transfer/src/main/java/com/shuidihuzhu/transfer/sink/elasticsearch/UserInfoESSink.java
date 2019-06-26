@@ -26,12 +26,11 @@ public class UserInfoESSink extends ESSink {
     @Resource
     private DeviceInfoESSink deviceInfoESSink;
 
-    private Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIntex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
 
     @Override
     public void batchSink(List<SinkRecord> recordList) {
         try {
-
+            Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIntex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
             JestResult jestResult = batchUpdateAction(recordList, bulkBuilder);
             if (!jestResult.isSucceeded()) {
                 logger.error("UserInfoESSink.batchSink error！");
@@ -78,6 +77,7 @@ public class UserInfoESSink extends ESSink {
 
     @Override
     public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
+        Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_USER_INFO_REALTIME.getIntex()).defaultType(SDHZ_USER_INFO_REALTIME.getType());
         return batchInsertAction(rejectedRecordMap, bulkBuilder);
     }
 }
