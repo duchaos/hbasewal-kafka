@@ -3,6 +3,7 @@ package com.shuidihuzhu.transfer.sink.elasticsearch;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.Bulk;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -79,14 +80,17 @@ public class DeviceInfoESSink extends ESSink {
             try {
                 JestResult jestResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIntex(), SDHZ_USER_INFO_REALTIME.getType(), userId);
                 if (jestResult.isSucceeded()) {
-                    Map<String, Object> userInfoMap = new HashMap<>();
-                    map.put(USER, userInfoMap);
                     Map<String, Object> resultMap = jestResult.getSourceAsObject(Map.class);
+                    if (MapUtils.isEmpty(resultMap)) {
+                        return map;
+                    }
+                    Map<String, Object> userInfoMap = new HashMap<>();
                     for (String key : resultMap.keySet()) {
                         if (!key.contains("es_metadata")) {
                             userInfoMap.put(key, resultMap.get(key));
                         }
                     }
+                    map.put(USER, userInfoMap);
                 }
             } catch (Exception e) {
                 logger.error("DeviceInfoESSink.updateHandleWithBuilder userId:{}", userId, e);
@@ -94,4 +98,9 @@ public class DeviceInfoESSink extends ESSink {
         }
         return map;
     }
+    @Override
+    public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
+        return batchInsertAction(rejectedRecordMap, bulkBuilder);
+    }
+
 }

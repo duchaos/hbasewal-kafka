@@ -10,11 +10,13 @@ import io.searchbox.client.JestClientFactory;
 import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.*;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 
@@ -126,11 +128,17 @@ public class ESSink extends AbstractSink implements InitializingBean {
     public Map<String, String> recordPreInsert(Map<String, SinkRecord> recordMap, Bulk.Builder bulkBuilder) {
         Index index = null;
         Map<String, String> idAndRowKeyMap = new HashMap();
+        if (MapUtils.isEmpty(recordMap)){
+            return idAndRowKeyMap;
+        }
         for (SinkRecord record : recordMap.values()) {
-            if(record==null){
+            if (record == null) {
                 continue;
             }
             Map<String, Object> keyValues = record.getKeyValues();
+            if (MapUtils.isEmpty(keyValues)){
+                continue;
+            }
             String id = String.valueOf(keyValues.get("id"));
             if (!StringUtils.isEmpty(id)) {
 //                    System.out.println("Insert rowkey = " + record.getRowKey() + ", column num: " + (record.getKeyValues().size() -1));
@@ -149,8 +157,15 @@ public class ESSink extends AbstractSink implements InitializingBean {
     public Map<String, SinkRecord> recordPreUpdate(List<SinkRecord> recordList, Bulk.Builder bulkBuilder) throws Exception {
         Update update = null;
         Map<String, SinkRecord> recordMap = new HashMap();
+        if (CollectionUtils.isEmpty(recordList)) {
+            logger.error("ESSink.recordPreUpdate recordList is empty!");
+            return recordMap;
+        }
         for (SinkRecord record : recordList) {
             Map<String, Object> updateMap = record.getKeyValues();
+            if (MapUtils.isEmpty(updateMap)) {
+                continue;
+            }
 //           这里的id ，可以是 用户画像的id ，也可以是 设备画像的id
 //              id 的作用，就是 更新索引时候，锁定更新的document
             Object idObj = updateMap.get("id");

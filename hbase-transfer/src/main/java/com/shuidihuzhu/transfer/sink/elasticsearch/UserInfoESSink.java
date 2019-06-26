@@ -76,4 +76,8 @@ public class UserInfoESSink extends ESSink {
         }
     }
 
+    @Override
+    public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
+        return batchInsertAction(rejectedRecordMap, bulkBuilder);
+    }
 }
