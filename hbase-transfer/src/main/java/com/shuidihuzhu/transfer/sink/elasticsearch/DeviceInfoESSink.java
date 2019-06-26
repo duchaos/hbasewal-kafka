@@ -75,7 +75,7 @@ public class DeviceInfoESSink extends ESSink {
             Object userIdInDeviceObj = map.get(USER_ID);
 //            没带useId，直接返回
             if (null == userIdInDeviceObj) {
-                logger.warn("DeviceInfoESSink.updateHandleWithBuilder 丢失用户id,deviceId:{}",deviceId);
+                logger.warn("DeviceInfoESSink.updateHandleWithBuilder 丢失用户id,deviceId:{}", deviceId);
                 return map;
             }
             String userIdFromDevice = String.valueOf(userIdInDeviceObj);
@@ -93,14 +93,17 @@ public class DeviceInfoESSink extends ESSink {
 //              获取userId ,和map中的对比，如果有变更，拉去map信息，没有则直接返回
                 Object userIdObj = resultMap.get(USER_ID);
                 if (null == userIdObj) {
+                    logger.info("DeviceInfoESSink.updateHandleWithBuilder  userid is null!");
                     return map;
                 }
                 String userId = String.valueOf(userIdObj);
 //           userId 没有改变，不需要更新用户信息，直接返回
                 if (userIdFromDevice.equals(userId)) {
+                    logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户无更改：userId:{} ", device_id, userId);
                     return map;
                 }
 
+                logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户变更：userId:{} -> {}", device_id, userId, userIdFromDevice);
 //        userId 改变，需要拉去最新的userInfo
                 JestResult userResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), userIdFromDevice);
 //            用户信息获取失败，不做处理
