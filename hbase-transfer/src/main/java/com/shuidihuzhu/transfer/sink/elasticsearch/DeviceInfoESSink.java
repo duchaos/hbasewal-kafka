@@ -27,6 +27,7 @@ public class DeviceInfoESSink extends ESSink {
     private Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex(SDHZ_DEVICE_INFO_REALTIME.getIntex()).defaultType(SDHZ_DEVICE_INFO_REALTIME.getType());
 
 
+
     @Override
     public void batchSink(List<SinkRecord> recordList) {
         try {
@@ -92,15 +93,54 @@ public class DeviceInfoESSink extends ESSink {
                     }
                     map.put(USER, userInfoMap);
                 }
+
             } catch (Exception e) {
                 logger.error("DeviceInfoESSink.updateHandleWithBuilder userId:{}", userId, e);
             }
         }
         return map;
     }
+
     @Override
     public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {
         return batchInsertAction(rejectedRecordMap, bulkBuilder);
+    }
+
+    @Override
+    public JestResult afterUpdateProcess(Map<String, SinkRecord> recordMap, JestResult result) throws Exception {
+        if (MapUtils.isEmpty(recordMap)) {
+            return result;
+        }
+//       查设备信息
+        for (Map.Entry<String, SinkRecord> entry : recordMap.entrySet()) {
+            SinkRecord record = entry.getValue();
+            if (record == null) {
+                continue;
+            }
+            Map<String, Object> keyValues = record.getKeyValues();
+            if (MapUtils.isEmpty(keyValues)) {
+                continue;
+            }
+            String deviceId = entry.getKey();
+            JestResult jestResult = searchDocumentById(SDHZ_DEVICE_INFO_REALTIME.getIntex(), SDHZ_DEVICE_INFO_REALTIME.getType(), deviceId);
+            if (jestResult.isSucceeded()) {
+//                resultMap 是查询到原有的设备信息map
+                Map<String, Object> resultMap = jestResult.getSourceAsObject(Map.class);
+                if (MapUtils.isEmpty(resultMap)) {
+                    continue;
+                }
+//               原有的map.addAll(新的map，除用户信息)
+                Map<String, Object> deviceInfoMap = new HashMap<>();
+                for (String key : resultMap.keySet()) {
+                    if (!key.contains("user")) {
+                        deviceInfoMap.put(key, resultMap.get(key));
+                    }
+                }
+                deviceInfoMap.putAll(keyValues);
+                record.setKeyValues(deviceInfoMap);
+            }
+        }
+        return batchInsertAction(recordMap, bulkBuilder);
     }
 
 }
