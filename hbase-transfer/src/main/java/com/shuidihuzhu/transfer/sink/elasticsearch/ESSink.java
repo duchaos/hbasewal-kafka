@@ -256,11 +256,21 @@ public class ESSink extends AbstractSink implements InitializingBean {
             for (BulkResult.BulkResultItem item : errItems) {
 
                 String id = item.id;
+                SinkRecord sinkRecord = recordMap.get(id);
+                if (null==sinkRecord){
+                    continue;
+                }
                 if (item.status == 404 || item.status == 429 || item.status == 503 || item.status == 500 || item.status == 409) {
                     //索引不存在,拒绝，node异常，重新执行
-                    insertRecordMap.put(id, recordMap.get(id));
+                    insertRecordMap.put(id, sinkRecord);
                 } else {
-                    String logInfo = "batchUpdateAction ===> Hbase rowkey=" + recordMap.get(id).getRowKey() + " Error item = [id : " + item.id + ", index : " + item.index + "type : " + item.type + ",operation :" + item.operation + ",status :" + item.status + ",version :" + item.version + ",error :" + item.error + ",errorType :" + item.errorType + ",errorReason :" + item.errorReason + "]";
+                    if (StringUtils.isBlank(sinkRecord.getRowKey())){
+                        continue;
+                    }
+                    if (null==item){
+                        continue;
+                    }
+                    String logInfo = "batchUpdateAction ===> Hbase rowkey=" + sinkRecord.getRowKey() + " Error item = [id : " + item.id + ", index : " + item.index + "type : " + item.type + ",operation :" + item.operation + ",status :" + item.status + ",version :" + item.version + ",error :" + item.error + ",errorType :" + item.errorType + ",errorReason :" + item.errorReason + "]";
                     logger.error(logInfo);
                 }
             }
@@ -269,7 +279,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
 //               插入数据分两种情况 我们在预处理时，recordMap已经对不同数据做过处理，故这里我们只需要根据不同的index 进行插入就可以
                 result = batchInsertAction(insertRecordMap);
                 if (!result.isSucceeded()) {
-                    throw new Exception("execute es error.msg=" + result.getErrorMessage());
+                   logger.warn("execute es error.msg=" + result.getErrorMessage());
                 }
             }
         }
