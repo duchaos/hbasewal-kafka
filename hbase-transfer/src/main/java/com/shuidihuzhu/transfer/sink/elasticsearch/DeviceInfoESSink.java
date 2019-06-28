@@ -82,29 +82,32 @@ public class DeviceInfoESSink extends ESSink {
             String device_id = String.valueOf(idObj);
             try {
                 JestResult jestResult = searchDocumentById(SDHZ_DEVICE_INFO_REALTIME.getIndex(), SDHZ_DEVICE_INFO_REALTIME.getType(), device_id);
+//              设备画像不存在，需要新增
                 if (!jestResult.isSucceeded()) {
-                    return map;
+                    logger.info("DeviceInfoESSink.updateHandleWithBuilder 新建设备画像 deviceId:{}", device_id);
                 }
 //                resultMap 是查询到原有的设备信息map
                 Map<String, Object> resultMap = jestResult.getSourceAsObject(Map.class);
-                if (MapUtils.isEmpty(resultMap)) {
-                    return map;
-                }
-//              获取userId ,和map中的对比，如果有变更，拉去map信息，没有则直接返回
-                Object userIdObj = resultMap.get(USER_ID);
-                if (null == userIdObj) {
-                    logger.info("DeviceInfoESSink.updateHandleWithBuilder  userid is null!");
-                    return map;
-                }
-                String userId = String.valueOf(userIdObj);
-//           userId 没有改变，不需要更新用户信息，直接返回
-                if (userIdFromDevice.equals(userId)) {
-                    logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户无更改：userId:{} ", device_id, userId);
+//                新建设备画像，需要判断是否包含userid，包含的话需要查
+                if (MapUtils.isEmpty(resultMap) && StringUtils.isBlank(userIdFromDevice)) {
                     return map;
                 }
 
-                logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户变更：userId:{} -> {}", device_id, userId, userIdFromDevice);
-//        userId 改变，需要拉去最新的userInfo
+                if (MapUtils.isNotEmpty(resultMap)) {
+//              获取userId ,和map中的对比，如果有变更，拉去map信息，没有则直接返回
+                    Object userIdObj = resultMap.get(USER_ID);
+                    if (null == userIdObj) {
+                        logger.warn("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},userid is null!", device_id);
+                    }
+                    String userId = String.valueOf(userIdObj);
+//           userId 没有改变，不需要更新用户信息，直接返回
+                    if (userIdFromDevice.equals(userId)) {
+                        logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户无更改：userId:{} ", device_id, userId);
+                        return map;
+                    }
+                    logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户变更：userId:{} -> {}", device_id, userId, userIdFromDevice);
+                }
+//                    新的设备画像 ，或者 userId 改变，需要拉去最新的userInfo
                 JestResult userResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), userIdFromDevice);
 //            用户信息获取失败，不做处理
                 if (!userResult.isSucceeded()) {
@@ -136,7 +139,7 @@ public class DeviceInfoESSink extends ESSink {
         }
 //        这里来判断是否有更新user信息，更新的需要 insert 到 设备画像
         Map<String, SinkRecord> deviceUpdateMap = new HashMap<>();
-        for (Map.Entry<String, SinkRecord> entry : deviceUpdateMap.entrySet()) {
+        for (Map.Entry<String, SinkRecord> entry : recordMap.entrySet()) {
             SinkRecord record = entry.getValue();
             if (null == record) {
                 continue;

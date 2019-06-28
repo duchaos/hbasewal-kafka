@@ -51,10 +51,9 @@ public class ESSinkTest extends TestBase{
         Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex("sdhz_device_info_realtime").defaultType("detail");
         SinkRecord recode = new SinkRecord();
         Map<String, Object> map = new HashMap<>(8);
-        map.put("data_dev_device_type", "荣耀 大师答玩");
         map.put("data_dev_user_id", "719471962");
-        map.put("id", "FE1CB01E-CE25-40C3-A2E1YYY");
-//        map.put("device_id","2699999999");
+        map.put("id", "FE1CB01E-CE25-40C3-AqwE1YQ7668");
+        map.put("data_ddd_e","2699999999");
         Map<String, Object> usermap = new HashMap<>(3);
         usermap.put("id","767761440");
         usermap.put("data_basic_idcard_name","上海");
