@@ -110,7 +110,7 @@ public class DeviceInfoESSink extends ESSink {
                 if (!userResult.isSucceeded()) {
                     return map;
                 }
-                Map<String, Object> newUserInfoMap = jestResult.getSourceAsObject(Map.class);
+                Map<String, Object> newUserInfoMap = userResult.getSourceAsObject(Map.class);
                 if (MapUtils.isEmpty(newUserInfoMap)) {
                     return map;
                 }
