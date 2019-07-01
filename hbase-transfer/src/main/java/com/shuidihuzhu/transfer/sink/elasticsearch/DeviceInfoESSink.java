@@ -134,10 +134,12 @@ public class DeviceInfoESSink extends ESSink {
 
     @Override
     public JestResult afterUpdateProcess(Map<String, SinkRecord> recordMap, JestResult result) throws Exception {
+//        这步仅针对设备画像更新做处理，
+//        判断是否有更新user信息，更新的需要 insert 到 设备画像
+//        如果是用户画像，不需要，直接跳过
         if (MapUtils.isEmpty(recordMap)) {
             return result;
         }
-//        这里来判断是否有更新user信息，更新的需要 insert 到 设备画像
         Map<String, SinkRecord> deviceUpdateMap = new HashMap<>();
         for (Map.Entry<String, SinkRecord> entry : recordMap.entrySet()) {
             SinkRecord record = entry.getValue();
@@ -146,6 +148,10 @@ public class DeviceInfoESSink extends ESSink {
             }
             Map<String, Object> keyValues = record.getKeyValues();
             if (MapUtils.isEmpty(keyValues)) {
+                continue;
+            }
+//            这里说明是用户更新的，map中只含有 id 和 user略过
+            if (keyValues.size() == 2 && keyValues.containsKey("id") && keyValues.containsKey(USER)) {
                 continue;
             }
             Map<String, Object> userInfoMap = (Map<String, Object>) keyValues.get(USER);
@@ -159,6 +165,7 @@ public class DeviceInfoESSink extends ESSink {
         }
         return super.afterUpdateProcess(recordMap, result);
     }
+
 
     @Override
     public JestResult batchInsertAction(Map<String, SinkRecord> rejectedRecordMap) throws Exception {

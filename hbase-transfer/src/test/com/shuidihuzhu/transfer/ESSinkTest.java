@@ -37,9 +37,9 @@ public class ESSinkTest extends TestBase{
 //        map.put("user",userMap);
         SinkRecord recode = new SinkRecord();
         Map<String, Object> map = new HashMap<>(3);
-        map.put("data_device_id", "866488039800000");
-        map.put("data_basic_idcard_city", "呼和浩特");
-        map.put("id","352436579");
+//        map.put("data_device_id", "866488039800000");
+        map.put("data_basic_idcard_city", "哈尔滨");
+        map.put("id","719471962");
         recode.setKeyValues(map);
         recode.setRowKey("this is rowkey");
         list.add(recode);
@@ -53,7 +53,7 @@ public class ESSinkTest extends TestBase{
         Map<String, Object> map = new HashMap<>(8);
         map.put("data_dev_user_id", "719471962");
         map.put("id", "FE1CB01E-CE25-40C3-AqwE1YQ7668");
-        map.put("data_ddd_e","2699999999");
+        map.put("data_ddd_e","7898789878");
         Map<String, Object> usermap = new HashMap<>(3);
         usermap.put("id","767761440");
         usermap.put("data_basic_idcard_name","上海");
