@@ -23,7 +23,7 @@
   <parent>
     <groupId>com.shuidihuzhu.datawarehouse</groupId>
     <artifactId>hbase-transfer-parent</artifactId>
-    <version>1.31-SNAPSHOT</version>
+    <version>1.31</version>
   </parent>
 
   <dependencies>
