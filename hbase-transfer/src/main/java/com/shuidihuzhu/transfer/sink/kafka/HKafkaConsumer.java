@@ -59,7 +59,6 @@ public class HKafkaConsumer implements InitializingBean {
     public void consumer(String groupId, String topic, String fromStart, ESSink esSink) {
 //        //TODO: Test38
 //        groupId = "hbase-tranfer_kafka_consumer_localtest";
-        groupId = groupId + "_20190625";
 //        topic = "hbase-tranfer-localtest";
 
         //TODO: online
