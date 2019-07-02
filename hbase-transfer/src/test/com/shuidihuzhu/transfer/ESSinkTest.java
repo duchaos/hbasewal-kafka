@@ -1,9 +1,9 @@
 package com.shuidihuzhu.transfer;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Lists;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import com.shuidihuzhu.transfer.sink.elasticsearch.ESSink;
-import io.searchbox.client.JestResult;
 import io.searchbox.core.Bulk;
 import org.junit.Test;
 
@@ -47,6 +47,15 @@ public class ESSinkTest extends TestBase{
     }
 
     @Test
+    public void searchDocumen() throws Exception {
+        ArrayList<Long> arrayList = Lists.newArrayList(719471962l, 352438581l);
+        Map<String, Map<String, Object>> map = userInfoESSink.doQuery_FromES("sdhz_user_info_realtime", "detail", arrayList, arrayList.size());
+        for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
+            System.out.println("key:"+entry.getKey()+",value:"+ JSON.toJSONString(entry.getValue()));
+        }
+    }
+
+    @Test
     public void batchInsertAction() throws Exception {
         Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex("sdhz_device_info_realtime").defaultType("detail");
         SinkRecord recode = new SinkRecord();
@@ -65,16 +74,4 @@ public class ESSinkTest extends TestBase{
         deviceInfoESSink.batchUpdateAction(list,bulkBuilder);
     }
 
-    @Test
-    public void searchDocumentById() throws Exception {
-        JestResult jestResult = userInfoESSink.searchDocumentById("sdhz_user_info_realtime", "detail", "719471962");
-        if (jestResult.isSucceeded()){
-            Map sourceAsObject = jestResult.getSourceAsObject(Map.class);
-
-            System.out.println(JSON.toJSONString(sourceAsObject));
-
-        }
-
-
-    }
 }

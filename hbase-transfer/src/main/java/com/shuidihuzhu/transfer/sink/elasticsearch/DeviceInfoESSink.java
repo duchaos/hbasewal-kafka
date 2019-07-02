@@ -1,15 +1,20 @@
 package com.shuidihuzhu.transfer.sink.elasticsearch;
 
+import com.alibaba.fastjson.JSON;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.Bulk;
+import io.searchbox.core.Update;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_DEVICE_INFO_REALTIME;
 import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_USER_INFO_REALTIME;
@@ -43,93 +48,219 @@ public class DeviceInfoESSink extends ESSink {
      * b、包含，需要进行如下操作
      * 1、根据userId 获取对应用户画像全部数据，无视设备画像表传来的数据，放入更新内容中
      *
-     * @param map
      * @return {@link Map< String, Object> }
      * @author: duchao01@shuidihuzhu.com
      * @date: 2019-06-21 17:45:16
      */
     @Override
-    public Map<String, Object> updateHandleWithBuilder(Map<String, Object> map) {
-//       如果是用户画像调用的，必含DEVICE_ID
-        Object deviceIdObj = map.get(DEVICE_ID);
-        String deviceId = String.valueOf(deviceIdObj);
-        if (null != deviceIdObj && StringUtils.isNotBlank(deviceId)) {
-//           deviceId有效，说明用户画像更新调用,需要替换后续index 的id
-            Object userIdObj = map.get("id");
-            map.put("id", deviceId);
-//            用户画像带来的信息，都是属于user 的
-            map.remove(DEVICE_ID);
-
-            HashMap<String, Object> deviceUpdateMap = new HashMap<>(2);
-            deviceUpdateMap.put(USER, map);
-            map.put("id", userIdObj == null ? "" : String.valueOf(userIdObj));
-            deviceUpdateMap.put("id", deviceId);
-            return deviceUpdateMap;
-        } else {
-//            否则都是设备画像自己更新的,判断是否需要更userId
-//            这里需要查询一次设备画像，获取现在的 dev_user_id
-            Object idObj = map.get("id");
-            if (null == idObj) {
-                return map;
+    public Map<String, SinkRecord> recordPreUpdate(List<SinkRecord> recordList, Bulk.Builder bulkBuilder) throws Exception {
+        Map<String, SinkRecord> recordMap = new HashMap();
+        if (CollectionUtils.isEmpty(recordList)) {
+            logger.error("ESSink.recordPreUpdate recordList is empty!");
+            return recordMap;
+        }
+        /* 放到最后的逻辑
+         * 1、map 盘空
+         * 2、id 有效
+         * 3、组装doc map 数据，这里才需要区分 用户更新的 设备更新的
+         * 4、把更新的json -》update -》bulkBuilder.addAction
+         * 5、更新recordMap
+         * */
+//        1、过滤掉id不符合规范部分
+        recordList = recordList.stream().filter(record -> {
+            Map<String, Object> updateMap = record.getKeyValues();
+//           1、map 盘空
+            if (MapUtils.isEmpty(updateMap)) {
+                return false;
             }
-            Object userIdInDeviceObj = map.get(USER_ID);
-//            没带useId，直接返回
-            if (null == userIdInDeviceObj) {
-                logger.warn("DeviceInfoESSink.updateHandleWithBuilder 丢失用户id,deviceId:{}", deviceId);
-                return map;
+//         2、id 有效
+            Object idObj = updateMap.get("id");
+            String id = null;
+            if (idObj == null) {
+                logger.error("rowkey is null");
+                return false;
             }
-            String userIdFromDevice = String.valueOf(userIdInDeviceObj);
-            String device_id = String.valueOf(idObj);
-            try {
-                JestResult jestResult = searchDocumentById(SDHZ_DEVICE_INFO_REALTIME.getIndex(), SDHZ_DEVICE_INFO_REALTIME.getType(), device_id);
-//              设备画像不存在，需要新增
-                if (!jestResult.isSucceeded()) {
-                    logger.info("DeviceInfoESSink.updateHandleWithBuilder 新建设备画像 deviceId:{}", device_id);
-                }
-//                resultMap 是查询到原有的设备信息map
-                Map<String, Object> resultMap = jestResult.getSourceAsObject(Map.class);
-//                新建设备画像，需要判断是否包含userid，包含的话需要查
-                if (MapUtils.isEmpty(resultMap) && StringUtils.isBlank(userIdFromDevice)) {
-                    return map;
-                }
+            id = String.valueOf(idObj);
+            if (StringUtils.isBlank(id)) {
+                return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
 
-                if (MapUtils.isNotEmpty(resultMap)) {
-//              获取userId ,和map中的对比，如果有变更，拉去map信息，没有则直接返回
-                    Object userIdObj = resultMap.get(USER_ID);
-                    if (null == userIdObj) {
-                        logger.warn("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},userid is null!", device_id);
-                    }
-                    String userId = String.valueOf(userIdObj);
-//           userId 没有改变，不需要更新用户信息，直接返回
-                    if (userIdFromDevice.equals(userId)) {
-                        logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户无更改：userId:{} ", device_id, userId);
-                        return map;
-                    }
-                    logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户变更：userId:{} -> {}", device_id, userId, userIdFromDevice);
-                }
-//                    新的设备画像 ，或者 userId 改变，需要拉去最新的userInfo
-                JestResult userResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), userIdFromDevice);
-//            用户信息获取失败，不做处理
-                if (!userResult.isSucceeded()) {
-                    return map;
-                }
-                Map<String, Object> newUserInfoMap = userResult.getSourceAsObject(Map.class);
-                if (MapUtils.isEmpty(newUserInfoMap)) {
-                    return map;
-                }
-                Map<String, Object> userInfoMap = new HashMap<>();
-                for (String key : newUserInfoMap.keySet()) {
-                    if (!key.contains("es_metadata")) {
-                        userInfoMap.put(key, newUserInfoMap.get(key));
-                    }
-                }
-//           放入新的用户信息
-                map.put(USER, userInfoMap);
-            } catch (Exception e) {
-                logger.error("DeviceInfoESSink.updateHandleWithBuilder userId:{}", userIdFromDevice, e);
+        /** 2、区分 用户画像调用 和 设备画像调用*/
+
+//        过滤出用户画像调用的id
+        List<SinkRecord> userUpdateList = new ArrayList<>();
+//        过滤出设备画像调用
+        List<SinkRecord> deviceUpdateList = new ArrayList<>();
+        for (SinkRecord sinkRecord : recordList) {
+
+            Map<String, Object> keyValues = sinkRecord.getKeyValues();
+//            用户画像更新后，通过DEVICE_ID 同步设备画像
+            if (keyValues.containsKey(DEVICE_ID) && StringUtils.isNotBlank("" + keyValues.get(DEVICE_ID))) {
+                userUpdateList.add(sinkRecord);
+            } else {
+                deviceUpdateList.add(sinkRecord);
             }
         }
-        return map;
+
+//        用户画像更新操作后的，recordMap 这里需要做的就是，把用户信息map ，封装成 带user 的map ,后续会识别这个
+        if (!CollectionUtils.isEmpty(userUpdateList)) {
+            userUpdateList.forEach(record -> {
+                HashMap<String, Object> keyValueMap = new HashMap<>(2);
+                Map<String, Object> userInfoMap = record.getKeyValues();
+                String id = "" + userInfoMap.get("id");
+                String deviceId = "" + userInfoMap.get(DEVICE_ID);
+                keyValueMap.put(USER, userInfoMap);
+                keyValueMap.put("id", deviceId);
+                record.setKeyValues(keyValueMap);
+                Map<String, Map<String, Object>> docMap = new HashMap<>(1);
+                docMap.put("doc", keyValueMap);
+                Update update = new Update.Builder(JSON.toJSONString(docMap)).id(deviceId).build();
+                bulkBuilder.addAction(update).build();
+                if (recordMap.containsKey(id)) {
+                    recordMap.get(id).getKeyValues().putAll(keyValueMap);
+                } else {
+                    recordMap.put(id, record);
+                }
+            });
+        }
+
+//        设备画像更新操作后的，recordMap
+        if (!CollectionUtils.isEmpty(deviceUpdateList)) {
+//          直接更新
+            List<SinkRecord> normalDeviceInfoList = new ArrayList<>();
+//          需要检查user信息的
+            List<SinkRecord> needCheckUserInfoList = new ArrayList<>();
+//          新增设备画像的
+            List<SinkRecord> createDeviceInfoList = new ArrayList<>();
+
+//  设备信息list,主要是为了获取用户id
+            List<SinkRecord> searchDeviceInfoList = new ArrayList<>(deviceUpdateList);
+//          获取es 中 设备画像的信息
+            List<SinkRecord> searchResultList = doQuery_FromES(SDHZ_DEVICE_INFO_REALTIME.getIndex(), SDHZ_DEVICE_INFO_REALTIME.getType(), searchDeviceInfoList, searchDeviceInfoList.size());
+//          查询的结果 设备id 和 用户id 映射,
+//          没有用户id，或者 新增设备画像 不存在
+            Map<String, String> searchResultMap = new HashMap<>();
+            Map<String, SinkRecord> noUserIdMap = new HashMap<>();
+            for (SinkRecord record : searchResultList) {
+                Map<String, Object> keyValues = record.getKeyValues();
+                if (MapUtils.isEmpty(keyValues)) {
+                    continue;
+                }
+                String device_id = "" + keyValues.get("id");
+                Object userIdObj = keyValues.get(USER_ID);
+                if (null == userIdObj) {
+                    logger.warn("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},userid is null!", device_id);
+                    noUserIdMap.put("" + keyValues.get("id"), record);
+                    continue;
+                }
+                searchResultMap.put("" + keyValues.get("id"), String.valueOf(userIdObj));
+            }
+
+            deviceUpdateList.forEach(record -> {
+
+                //            否则都是设备画像自己更新的,判断是否需要更userId
+//            这里需要查询一次设备画像，获取现在的 dev_user_id
+                Map<String, Object> keyValues = record.getKeyValues();
+                String deviceId = "" + keyValues.get("id");
+                Object userIdInDeviceObj = keyValues.get(USER_ID);
+//            没带useId,不需往下查用户了,直接更新就好
+//             有用户id ，需要看是否有变化，有变化才继续
+//                第一步，查userid
+//                第二部，看是否变化
+                if (null != userIdInDeviceObj) {
+                    String userIdFromDevice = String.valueOf(userIdInDeviceObj);
+                    String userIdFromEs = null;
+                    if (searchResultMap.get(deviceId) != null) {
+                        userIdFromEs = searchResultMap.get(deviceId);
+//                        之前没有用户id，现在添加用户id的
+                    } else if (noUserIdMap.get(deviceId) != null) {
+                        needCheckUserInfoList.add(record);
+                    } else {
+                        //  新增设备画
+                        createDeviceInfoList.add(record);
+
+                    }
+//           userId 改变，需要更新用户信息
+                    if (!userIdFromDevice.equals(userIdFromEs)) {
+                        needCheckUserInfoList.add(record);
+                    } else {
+                        normalDeviceInfoList.add(record);
+                        logger.info("DeviceInfoESSink.updateHandleWithBuilder  deviceId:{},用户无更改：userId:{} ", deviceId, userIdFromDevice);
+                    }
+
+                } else {
+                    normalDeviceInfoList.add(record);
+                    logger.warn("DeviceInfoESSink.updateHandleWithBuilder 丢失用户id,deviceId:{}", deviceId);
+                }
+
+//                    }
+////                    新的设备画像 ，或者 userId 改变，需要拉去最新的userInfo
+//                    JestResult userResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), userIdFromDevice);
+////            用户信息获取失败，不做处理
+//            if (!userResult.isSucceeded()) {
+//                return map;
+//            }
+//            Map<String, Object> newUserInfoMap = userResult.getSourceAsObject(Map.class);
+//            if (MapUtils.isEmpty(newUserInfoMap)) {
+//                return map;
+//            }
+//            Map<String, Object> userInfoMap = new HashMap<>();
+//            for (String key : newUserInfoMap.keySet()) {
+//                if (!key.contains("es_metadata")) {
+//                    userInfoMap.put(key, newUserInfoMap.get(key));
+//                }
+//            }
+////           放入新的用户信息
+//            map.put(USER, userInfoMap);
+            });
+
+            if (!CollectionUtils.isEmpty(needCheckUserInfoList)) {
+                try {
+                    List<SinkRecord> sinkRecords = doQuery_FromES(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), needCheckUserInfoList, needCheckUserInfoList.size());
+                } catch (Exception e) {
+                    logger.error(" doQuery_FromES 查询用户信息失败！ ");
+                }
+            }
+
+            if (!CollectionUtils.isEmpty(createDeviceInfoList)){
+                for (SinkRecord record : createDeviceInfoList) {
+                    Map<String, Map<String, Object>> docMap = new HashMap<>(1);
+                    Map<String, Object> keyValues = record.getKeyValues();
+                    String deviceId = "" + keyValues.get("id");
+                    docMap.put("doc", keyValues);
+                    Update update = new Update.Builder(JSON.toJSONString(docMap)).id(deviceId).build();
+                    bulkBuilder.addAction(update).build();
+                    if (recordMap.containsKey(deviceId)) {
+                        recordMap.get(deviceId).getKeyValues().putAll(keyValues);
+                    } else {
+                        recordMap.put(deviceId, record);
+                    }
+                }
+            }
+
+            if (!CollectionUtils.isEmpty(normalDeviceInfoList)) {
+                for (SinkRecord record : normalDeviceInfoList) {
+                    Map<String, Map<String, Object>> docMap = new HashMap<>(1);
+                    Map<String, Object> keyValues = record.getKeyValues();
+                    String deviceId = "" + keyValues.get("id");
+                    docMap.put("doc", keyValues);
+                    Update update = new Update.Builder(JSON.toJSONString(docMap)).id(deviceId).build();
+                    bulkBuilder.addAction(update).build();
+                    if (recordMap.containsKey(deviceId)) {
+                        recordMap.get(deviceId).getKeyValues().putAll(keyValues);
+                    } else {
+                        recordMap.put(deviceId, record);
+                    }
+                }
+            }
+
+
+
+        }
+        return recordMap;
+
     }
 
     @Override

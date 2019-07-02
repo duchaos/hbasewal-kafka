@@ -1,8 +1,7 @@
 package com.shuidihuzhu.transfer.sink.elasticsearch;
 
 import com.alibaba.fastjson.JSON;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
 import com.shuidihuzhu.transfer.model.SinkRecord;
 import com.shuidihuzhu.transfer.sink.AbstractSink;
 import io.searchbox.client.JestClient;
@@ -12,13 +11,15 @@ import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.*;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.CollectionUtils;
 
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -129,7 +130,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
     public Map<String, String> recordPreInsert(Map<String, SinkRecord> recordMap, Bulk.Builder bulkBuilder) {
         Index index = null;
         Map<String, String> idAndRowKeyMap = new HashMap();
-        if (MapUtils.isEmpty(recordMap)){
+        if (MapUtils.isEmpty(recordMap)) {
             return idAndRowKeyMap;
         }
         for (SinkRecord record : recordMap.values()) {
@@ -137,7 +138,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
                 continue;
             }
             Map<String, Object> keyValues = record.getKeyValues();
-            if (MapUtils.isEmpty(keyValues)){
+            if (MapUtils.isEmpty(keyValues)) {
                 continue;
             }
             String id = String.valueOf(keyValues.get("id"));
@@ -179,12 +180,9 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
             if (!StringUtils.isEmpty(id)) {
                 Map<String, Map<String, Object>> docMap = new HashMap<>(1);
-                Map<String, Object> resultMap = updateHandleWithBuilder(updateMap);
-                docMap.put("doc", resultMap);
-                id = String.valueOf(resultMap.get("id"));
+                docMap.put("doc", updateMap);
+                id = String.valueOf(updateMap.get("id"));
                 update = new Update.Builder(JSON.toJSONString(docMap)).id(id).build();
-                updateMap = resultMap;
-                record.setKeyValues(resultMap);
             } else {
                 throw new Exception("rowkey is null");
             }
@@ -198,30 +196,6 @@ public class ESSink extends AbstractSink implements InitializingBean {
         return recordMap;
     }
 
-    /**
-     * 这里需要区分到底是那种更新操作
-     * ——————————————————————————————————————————————————————————————————————————————————————————————————————————————————
-     * ||   用户画像的更新，放在 更新设备画像时操作，故不做处理
-     * ||   设备画像的更新，需要区分是否包含 userId，
-     * ||                a、不包含不做处理
-     * ||                b、包含，需要进行如下操作
-     * ||                   1、根据userId 获取对应用户画像全部数据，无视设备画像表传来的数据，放入更新内容中
-     * ||                   2、根据设备id  对设备画像进行更新操作，
-     * ||                       2.1 更新成功
-     * ||                       2.2 更新失败
-     * ||                              根据设备id ，获取对应设备画像全部数据，内存中进行目标字段更新替换，放入用户画像部分信息，进行index
-     * ||
-     * ——————————————————————————————————————————————————————————————————————————————————————————————————————————————————
-     *
-     * @param updateMap
-     * @return {@link Map< String, Object> }
-     * @throw
-     * @author: duchao01@shuidihuzhu.com
-     * @date: 2019-06-21 17:29:08
-     */
-    public Map<String, Object> updateHandleWithBuilder(Map<String, Object> updateMap) {
-        return updateMap;
-    }
 
     public JestResult afterInsertProcess(Map<String, SinkRecord> recordMap, Map<String, String> idAndRowKeyMap, JestResult result) throws Exception {
         if (!result.isSucceeded()) {
@@ -258,17 +232,17 @@ public class ESSink extends AbstractSink implements InitializingBean {
 
                 String id = item.id;
                 SinkRecord sinkRecord = recordMap.get(id);
-                if (null==sinkRecord){
+                if (null == sinkRecord) {
                     continue;
                 }
                 if (item.status == 404 || item.status == 429 || item.status == 503 || item.status == 500 || item.status == 409) {
                     //索引不存在,拒绝，node异常，重新执行
                     insertRecordMap.put(id, sinkRecord);
                 } else {
-                    if (StringUtils.isBlank(sinkRecord.getRowKey())){
+                    if (StringUtils.isBlank(sinkRecord.getRowKey())) {
                         continue;
                     }
-                    if (null==item){
+                    if (null == item) {
                         continue;
                     }
                     String logInfo = "batchUpdateAction ===> Hbase rowkey=" + sinkRecord.getRowKey() + " Error item = [id : " + item.id + ", index : " + item.index + "type : " + item.type + ",operation :" + item.operation + ",status :" + item.status + ",version :" + item.version + ",error :" + item.error + ",errorType :" + item.errorType + ",errorReason :" + item.errorReason + "]";
@@ -280,21 +254,82 @@ public class ESSink extends AbstractSink implements InitializingBean {
 //               插入数据分两种情况 我们在预处理时，recordMap已经对不同数据做过处理，故这里我们只需要根据不同的index 进行插入就可以
                 result = batchInsertAction(insertRecordMap);
                 if (!result.isSucceeded()) {
-                   logger.warn("execute es error.msg=" + result.getErrorMessage());
+                    logger.warn("execute es error.msg=" + result.getErrorMessage());
                 }
             }
         }
         return result;
     }
 
-    public JestResult searchDocumentById(String indexName, String typeName, String id) throws IOException {
-        Get get = new Get.Builder(indexName, id).type(typeName).build();
-        JestResult result = client.execute(get);
-        if (!result.isSucceeded()) {
-            logger.warn("searchDocumentById error ! index:{},type:{},id:{},msg:{}", indexName, typeName, id, result.getErrorMessage());
-        }
-        return result;
-    }
+    /**
+     * 会根据id 查询es 内的数据，如果 SinkRecord 的keyvalue 比es 新，需要先保存一份
+     *
+     * @param indexName
+     * @param indexType
+     * @param idList
+     * @param pageSize
+     * @return {@link Map< String, Map< String, Object>> }
+     * @throw
+     * @author: duchao01@shuidihuzhu.com
+     * @date: 2019-07-02 19:02:09
+     */
+    public  List<SinkRecord>  doQuery_FromES(String indexName, String indexType, List<SinkRecord> idList, int pageSize) throws Exception {
+//        LOGGER.info("start --- doQuery_FromES thread = " + Thread.currentThread().getId());
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
+        for (SinkRecord record : idList) {
+            String id = String.valueOf(record.getKeyValues().get("id"));
+            boolQueryBuilder.should(QueryBuilders.termQuery("id", id));
+        }
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(boolQueryBuilder);
+        searchSourceBuilder.from(0);
+        searchSourceBuilder.size(pageSize);
+
+        Search search = new Search.Builder(searchSourceBuilder.toString())
+                .addIndex(indexName)
+                .addType(indexType)
+                .build();
+
+        SearchResult sr = client.execute(search);
+        if (!sr.isSucceeded()) {
+            throw new Exception(sr.getErrorMessage());
+        }
+        JsonObject jsonObject = sr.getJsonObject();
+        long took = jsonObject.get("took").getAsLong();
+        JsonObject hits = jsonObject.getAsJsonObject("hits");
+        long total = hits.get("total").getAsLong();
+        JsonArray docs = hits.getAsJsonArray("hits");
+        Map<String, Map<String, Object>> resultMap = new HashMap<>();
+        for (JsonElement element : docs) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            Map map = JSON.parseObject(element.toString(), Map.class);
+            if (MapUtils.isEmpty(map)) {
+                continue;
+            }
+            if (!map.containsKey("_id") || StringUtils.isBlank(String.valueOf(map.get("_id")))) {
+                continue;
+            }
+            String id = String.valueOf(map.get("_id"));
+            if (!map.containsKey("_source") || MapUtils.isEmpty((Map<String, Object>) map.get("_source"))) {
+                continue;
+            }
+            resultMap.put(id, (Map<String, Object>) map.get("_source"));
+        }
+
+        for (SinkRecord record : idList) {
+            Map<String, Object> keyValues = record.getKeyValues();
+            String id = "" + keyValues.get("id");
+            if (resultMap.containsKey(id)) {
+                record.setKeyValues(resultMap.get(id));
+            }
+        }
+        logger.info("查询总条数:" + total + ", took=" + took);
+        logger.info("end --- doQuery_FromES thread = " + Thread.currentThread().getId());
+        return idList;
+    }
 
 }
