@@ -10,10 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_DEVICE_INFO_REALTIME;
@@ -156,7 +153,12 @@ public class DeviceInfoESSink extends ESSink {
                     noUserIdMap.put("" + keyValues.get("id"), record);
                     continue;
                 }
-                searchResultMap.put("" + keyValues.get("id"), String.valueOf(userIdObj));
+                if (keyValues.containsKey("old"+USER_ID)){
+                    String userId = String.valueOf(keyValues.get("old" + USER_ID));
+                    searchResultMap.put("" + keyValues.get("id"), String.valueOf(userId));
+                }else {
+                    searchResultMap.put("" + keyValues.get("id"), String.valueOf(userIdObj));
+                }
             }
 
             deviceUpdateList.forEach(record -> {
@@ -224,6 +226,7 @@ public class DeviceInfoESSink extends ESSink {
 //         放入新的用户信息
                     userInfoParamMap.put("" + userInfoMap.get("id"), userInfoMap);
                     keyValues.remove(SEARCH_USER_ID);
+                    keyValues.remove("old"+USER_ID);
                 }
                 for (SinkRecord record : needCheckUserInfoList) {
                     Map<String, Map<String, Object>> docMap = new HashMap<>(1);

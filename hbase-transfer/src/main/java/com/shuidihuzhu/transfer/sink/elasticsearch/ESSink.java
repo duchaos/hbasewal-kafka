@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static com.shuidihuzhu.transfer.sink.elasticsearch.DeviceInfoESSink.SEARCH_USER_ID;
+import static com.shuidihuzhu.transfer.sink.elasticsearch.DeviceInfoESSink.USER_ID;
 import static org.apache.hadoop.yarn.webapp.Params.USER;
 
 
@@ -350,7 +351,15 @@ public class ESSink extends AbstractSink implements InitializingBean {
             }
             if (resultMap.containsKey(id)) {
                 Map<String, Object> unionMap = resultMap.get(id);
+                Object userIdObj = unionMap.get(USER_ID);
+                String oldUserId = null;
+                if (userIdObj != null) {
+                    oldUserId = String.valueOf(userIdObj);
+                }
                 unionMap.putAll(keyValues);
+                if (oldUserId!=null) {
+                    unionMap.put("old"+USER_ID, oldUserId);
+                }
                 record.setKeyValues(unionMap);
                 result.add(record);
             }
