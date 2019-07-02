@@ -217,14 +217,40 @@ public class DeviceInfoESSink extends ESSink {
             });
 
             if (!CollectionUtils.isEmpty(needCheckUserInfoList)) {
-                try {
-                    List<SinkRecord> sinkRecords = doQuery_FromES(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), needCheckUserInfoList, needCheckUserInfoList.size());
-                } catch (Exception e) {
-                    logger.error(" doQuery_FromES 查询用户信息失败！ ");
+                List<SinkRecord> searchUserList = new ArrayList<>(needCheckUserInfoList);
+                List<SinkRecord> searchUserResultList = doQuery_FromES(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), searchUserList, searchUserList.size());
+//                组装了一个 userId ，userInfo 的map
+                Map<String, Map<String, Object>> userInfoParamMap = new HashMap<>();
+                for (SinkRecord sinkRecord : searchUserResultList) {
+//                用户信息 map
+                    Map<String, Object> keyValues = sinkRecord.getKeyValues();
+                    Map<String, Object> userInfoMap = new HashMap<>();
+                    for (String key : keyValues.keySet()) {
+                        if (!key.contains("es_metadata")) {
+                            userInfoMap.put(key, keyValues.get(key));
+                        }
+                    }
+//         放入新的用户信息
+                    userInfoParamMap.put("" + userInfoMap.get("id"), userInfoMap);
+                }
+                for (SinkRecord record : needCheckUserInfoList) {
+                    Map<String, Map<String, Object>> docMap = new HashMap<>(1);
+                    Map<String, Object> keyValues = record.getKeyValues();
+                    String deviceId = "" + keyValues.get("id");
+                    keyValues.get(USER_ID);
+                    keyValues.put(USER, userInfoParamMap.get("" + keyValues.get(USER_ID)));
+                    docMap.put("doc", keyValues);
+                    Update update = new Update.Builder(JSON.toJSONString(docMap)).id(deviceId).build();
+                    bulkBuilder.addAction(update).build();
+                    if (recordMap.containsKey(deviceId)) {
+                        recordMap.get(deviceId).getKeyValues().putAll(keyValues);
+                    } else {
+                        recordMap.put(deviceId, record);
+                    }
                 }
             }
 
-            if (!CollectionUtils.isEmpty(createDeviceInfoList)){
+            if (!CollectionUtils.isEmpty(createDeviceInfoList)) {
                 for (SinkRecord record : createDeviceInfoList) {
                     Map<String, Map<String, Object>> docMap = new HashMap<>(1);
                     Map<String, Object> keyValues = record.getKeyValues();
@@ -255,9 +281,6 @@ public class DeviceInfoESSink extends ESSink {
                     }
                 }
             }
-
-
-
         }
         return recordMap;
 
