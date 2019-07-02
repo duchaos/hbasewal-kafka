@@ -212,7 +212,10 @@ public class DeviceInfoESSink extends ESSink {
 //                用户信息 map
                     Map<String, Object> keyValues = sinkRecord.getKeyValues();
                     Map<String, Object> userInfoMap = new HashMap<>();
-                    Map<String, Object> userMap = (Map<String, Object>)keyValues.get(USER);
+                    Map<String, Object> userMap = (Map<String, Object>) keyValues.get(USER);
+                    if (MapUtils.isEmpty(userMap)) {
+                        continue;
+                    }
                     for (String key : userMap.keySet()) {
                         if (!key.contains("es_metadata")) {
                             userInfoMap.put(key, userMap.get(key));

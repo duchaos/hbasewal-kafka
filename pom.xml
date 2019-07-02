@@ -17,7 +17,7 @@
 	<groupId>com.shuidihuzhu.datawarehouse</groupId>
 	<artifactId>hbase-transfer-parent</artifactId>
 	<packaging>pom</packaging>
-	<version>1.31</version>
+	<version>1.31-SNAPSHOT</version>
 	<modelVersion>4.0.0</modelVersion>
 
 	<modules>
