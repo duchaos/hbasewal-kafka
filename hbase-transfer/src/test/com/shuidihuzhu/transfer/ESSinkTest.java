@@ -71,15 +71,14 @@ public class ESSinkTest extends TestBase{
         Bulk.Builder bulkBuilder = new Bulk.Builder().defaultIndex("sdhz_device_info_realtime").defaultType("detail");
         SinkRecord recode = new SinkRecord();
         Map<String, Object> map = new HashMap<>(8);
-        map.put("data_dev_user_id", "352439707");
+        map.put("data_dev_user_id", "13121222");
         map.put("data_aaaa", "123123121");
         map.put("id", "FE1CB01E-CE25-40I44-A2E1YYY");
         recode.setKeyValues(map);
         recode.setRowKey("this is rowkey");
         List<SinkRecord> list = new ArrayList<>();
         list.add(recode);
-        map.remove("adas");
-//        deviceInfoESSink.batchUpdateAction(list,bulkBuilder);
+        deviceInfoESSink.batchUpdateAction(list,bulkBuilder);
     }
 
 

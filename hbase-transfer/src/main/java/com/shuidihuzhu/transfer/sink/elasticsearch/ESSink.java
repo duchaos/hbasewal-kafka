@@ -348,6 +348,7 @@ public class ESSink extends AbstractSink implements InitializingBean {
                 Map<String, Object> unionMap = resultMap.get(userId);
                 keyValues.put(USER, unionMap);
                 result.add(record);
+                continue;
             }
             if (resultMap.containsKey(id)) {
                 Map<String, Object> unionMap = resultMap.get(id);

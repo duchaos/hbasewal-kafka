@@ -305,7 +305,7 @@ public class DeviceInfoESSink extends ESSink {
             }
             Map<String, Object> userInfoMap = (Map<String, Object>) keyValues.get(USER);
             if (MapUtils.isEmpty(userInfoMap)) {
-                continue;
+                keyValues.remove(USER);
             }
             deviceUpdateMap.put(entry.getKey(), entry.getValue());
         }

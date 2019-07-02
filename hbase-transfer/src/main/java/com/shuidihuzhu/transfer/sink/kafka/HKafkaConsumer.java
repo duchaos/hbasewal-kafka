@@ -118,6 +118,7 @@ public class HKafkaConsumer implements InitializingBean {
 
                         recordList.addAll(recordMap.values());
                         esSink.batchSink(recordList);
+                        logger.info(" esSink.batchSink=>" + recordList.size());
                         dualFlag = true;
                     } catch (Exception e) {
                         logger.error("handler error.", e);
