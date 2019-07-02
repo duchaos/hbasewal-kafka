@@ -27,8 +27,9 @@ import static com.shuidihuzhu.transfer.enums.TransferEnum.SDHZ_USER_INFO_REALTIM
 public class DeviceInfoESSink extends ESSink {
 
     private static final String DEVICE_ID = "data_device_id";
-    private static final String USER = "user";
-    private static final String USER_ID = "data_dev_user_id";
+    public static final String USER = "user";
+    public static final String USER_ID = "data_dev_user_id";
+    public static final String SEARCH_USER_ID = "search_user_id";
 
 
     @Override
@@ -194,30 +195,16 @@ public class DeviceInfoESSink extends ESSink {
                     normalDeviceInfoList.add(record);
                     logger.warn("DeviceInfoESSink.updateHandleWithBuilder 丢失用户id,deviceId:{}", deviceId);
                 }
-
-//                    }
-////                    新的设备画像 ，或者 userId 改变，需要拉去最新的userInfo
-//                    JestResult userResult = searchDocumentById(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), userIdFromDevice);
-////            用户信息获取失败，不做处理
-//            if (!userResult.isSucceeded()) {
-//                return map;
-//            }
-//            Map<String, Object> newUserInfoMap = userResult.getSourceAsObject(Map.class);
-//            if (MapUtils.isEmpty(newUserInfoMap)) {
-//                return map;
-//            }
-//            Map<String, Object> userInfoMap = new HashMap<>();
-//            for (String key : newUserInfoMap.keySet()) {
-//                if (!key.contains("es_metadata")) {
-//                    userInfoMap.put(key, newUserInfoMap.get(key));
-//                }
-//            }
-////           放入新的用户信息
-//            map.put(USER, userInfoMap);
             });
 
             if (!CollectionUtils.isEmpty(needCheckUserInfoList)) {
                 List<SinkRecord> searchUserList = new ArrayList<>(needCheckUserInfoList);
+//                放入USER_ID 作为标示
+                searchUserList.forEach(record -> {
+                    Map<String, Object> keyValues = record.getKeyValues();
+                    String userId = String.valueOf(keyValues.get(USER_ID));
+                    keyValues.put(SEARCH_USER_ID, userId);
+                });
                 List<SinkRecord> searchUserResultList = doQuery_FromES(SDHZ_USER_INFO_REALTIME.getIndex(), SDHZ_USER_INFO_REALTIME.getType(), searchUserList, searchUserList.size());
 //                组装了一个 userId ，userInfo 的map
                 Map<String, Map<String, Object>> userInfoParamMap = new HashMap<>();
@@ -225,13 +212,15 @@ public class DeviceInfoESSink extends ESSink {
 //                用户信息 map
                     Map<String, Object> keyValues = sinkRecord.getKeyValues();
                     Map<String, Object> userInfoMap = new HashMap<>();
-                    for (String key : keyValues.keySet()) {
+                    Map<String, Object> userMap = (Map<String, Object>)keyValues.get(USER);
+                    for (String key : userMap.keySet()) {
                         if (!key.contains("es_metadata")) {
-                            userInfoMap.put(key, keyValues.get(key));
+                            userInfoMap.put(key, userMap.get(key));
                         }
                     }
 //         放入新的用户信息
                     userInfoParamMap.put("" + userInfoMap.get("id"), userInfoMap);
+                    keyValues.remove(SEARCH_USER_ID);
                 }
                 for (SinkRecord record : needCheckUserInfoList) {
                     Map<String, Map<String, Object>> docMap = new HashMap<>(1);

@@ -37,8 +37,8 @@ public class ESSinkTest extends TestBase{
 //        map.put("user",userMap);
         SinkRecord recode = new SinkRecord();
         Map<String, Object> map = new HashMap<>(3);
-//        map.put("data_device_id", "866488039800000");
-        map.put("data_basic_idcard_city", "哈尔滨");
+        map.put("data_device_id", "FE1CB01E-CE25-40I44-A2E1YYY");
+        map.put("data_basic_ssss", "sasdasdfa");
         map.put("id","719471962");
         recode.setKeyValues(map);
         recode.setRowKey("this is rowkey");
@@ -48,11 +48,22 @@ public class ESSinkTest extends TestBase{
 
     @Test
     public void searchDocumen() throws Exception {
-        ArrayList<Long> arrayList = Lists.newArrayList(719471962l, 352438581l);
-        Map<String, Map<String, Object>> map = userInfoESSink.doQuery_FromES("sdhz_user_info_realtime", "detail", arrayList, arrayList.size());
-        for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
-            System.out.println("key:"+entry.getKey()+",value:"+ JSON.toJSONString(entry.getValue()));
-        }
+        SinkRecord record = new SinkRecord();
+        record.setKeyValues(new HashMap(){
+            {
+                put("id","719471962");
+            }
+        });
+        SinkRecord record1 = new SinkRecord();
+        record1.setKeyValues(new HashMap(){
+            {
+                put("id","352438581");
+            }
+        });
+        ArrayList<SinkRecord> arrayList = Lists.newArrayList(record, record1);
+        List<SinkRecord> sinkRecords = userInfoESSink.doQuery_FromES("sdhz_user_info_realtime", "detail", arrayList, arrayList.size());
+        System.out.println(JSON.toJSONString(sinkRecords));
+
     }
 
     @Test
@@ -61,12 +72,8 @@ public class ESSinkTest extends TestBase{
         SinkRecord recode = new SinkRecord();
         Map<String, Object> map = new HashMap<>(8);
         map.put("data_dev_user_id", "719471962");
-        map.put("id", "FE1CB01E-CE25-40C3-AqwE1YQ7668");
-        map.put("data_ddd_e","7898789878");
-        Map<String, Object> usermap = new HashMap<>(3);
-        usermap.put("id","767761440");
-        usermap.put("data_basic_idcard_name","上海");
-//        map.put(USER,usermap);
+        map.put("data_aaaa", "123123121");
+        map.put("id", "FE1CB01E-CE25-40I44-A2E1YYY");
         recode.setKeyValues(map);
         recode.setRowKey("this is rowkey");
         List<SinkRecord> list = new ArrayList<>();

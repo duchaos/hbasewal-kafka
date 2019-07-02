@@ -20,7 +20,12 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.util.*;
+
+import static com.shuidihuzhu.transfer.sink.elasticsearch.DeviceInfoESSink.SEARCH_USER_ID;
+import static org.apache.hadoop.yarn.webapp.Params.USER;
+
 
 /**
  * Created by sunfu on 2018/12/29.
@@ -273,12 +278,19 @@ public class ESSink extends AbstractSink implements InitializingBean {
      * @author: duchao01@shuidihuzhu.com
      * @date: 2019-07-02 19:02:09
      */
-    public  List<SinkRecord>  doQuery_FromES(String indexName, String indexType, List<SinkRecord> idList, int pageSize) throws Exception {
+    public List<SinkRecord> doQuery_FromES(String indexName, String indexType, List<SinkRecord> idList, int pageSize) {
 //        LOGGER.info("start --- doQuery_FromES thread = " + Thread.currentThread().getId());
+        List<SinkRecord> result = new ArrayList<>();
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
         for (SinkRecord record : idList) {
-            String id = String.valueOf(record.getKeyValues().get("id"));
+            Map<String, Object> keyValues = record.getKeyValues();
+            String id = null;
+            if (keyValues.containsKey(SEARCH_USER_ID)) {
+                id = String.valueOf(keyValues.get(SEARCH_USER_ID));
+            } else {
+                id = String.valueOf(keyValues.get("id"));
+            }
             boolQueryBuilder.should(QueryBuilders.termQuery("id", id));
         }
 
@@ -292,9 +304,14 @@ public class ESSink extends AbstractSink implements InitializingBean {
                 .addType(indexType)
                 .build();
 
-        SearchResult sr = client.execute(search);
+        SearchResult sr = null;
+        try {
+            sr = client.execute(search);
+        } catch (IOException e) {
+            logger.warn("查询不存在的数据！" + sr.getErrorMessage());
+        }
         if (!sr.isSucceeded()) {
-            throw new Exception(sr.getErrorMessage());
+            return result;
         }
         JsonObject jsonObject = sr.getJsonObject();
         long took = jsonObject.get("took").getAsLong();
@@ -323,13 +340,24 @@ public class ESSink extends AbstractSink implements InitializingBean {
         for (SinkRecord record : idList) {
             Map<String, Object> keyValues = record.getKeyValues();
             String id = "" + keyValues.get("id");
+            Object userObj = keyValues.get(SEARCH_USER_ID);
+            String userId = "" + userObj;
+            if (userObj != null && StringUtils.isNotBlank(userId)) {
+//                如果查询时候带了 USER_ID ，只更新user信息
+                Map<String, Object> unionMap = resultMap.get(userId);
+                keyValues.put(USER, unionMap);
+                result.add(record);
+            }
             if (resultMap.containsKey(id)) {
-                record.setKeyValues(resultMap.get(id));
+                Map<String, Object> unionMap = resultMap.get(id);
+                unionMap.putAll(keyValues);
+                record.setKeyValues(unionMap);
+                result.add(record);
             }
         }
         logger.info("查询总条数:" + total + ", took=" + took);
         logger.info("end --- doQuery_FromES thread = " + Thread.currentThread().getId());
-        return idList;
+        return result;
     }
 
 }
