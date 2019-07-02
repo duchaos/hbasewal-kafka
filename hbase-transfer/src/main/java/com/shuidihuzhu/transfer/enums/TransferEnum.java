@@ -96,8 +96,9 @@ public enum TransferEnum {
             return "sdhz_user_info_realtime";
         }
 
+//        FIXME 需要和 config 里保持一致
         public String getTopic() {
-            return "hbase-tranfer";
+            return "hbase-tranfer-20190527";
         }
 
         public String getIndex() {
