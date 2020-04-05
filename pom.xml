@@ -1,41 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-	<parent>
-		<groupId>com.shuidihuzhu.infra</groupId>
-		<artifactId>parent</artifactId>
-		<version>1.15</version>
-	</parent>
 
-	<scm>
-		<connection>scm:git:http://git.shuiditech.com/datawarehouse/hbase-transfer</connection>
-		<developerConnection>scm:git:git@git.shuiditech.com:datawarehouse/hbase-transfer.git</developerConnection>
-		<url>http://git.shuiditech.com/datawarehouse/hbase-transfer</url>
-		<tag>1.31</tag>
-	</scm>
-
-	<groupId>com.shuidihuzhu.datawarehouse</groupId>
-	<artifactId>hbase-transfer-parent</artifactId>
+	<groupId>com.ngdate.wal</groupId>
+	<artifactId>hbasewal-kafka-parent</artifactId>
 	<packaging>pom</packaging>
-	<version>1.31</version>
+	<version>1.0-SNAPSHOT</version>
 	<modelVersion>4.0.0</modelVersion>
 
 	<modules>
-		<module>hbase-transfer</module>
+		<module>hbasewal-kafka</module>
 		<module>hbase-sep</module>
 	</modules>
-
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.shuidihuzhu.infra</groupId>
-				<artifactId>shuidi-bom</artifactId>
-				<type>pom</type>
-				<version>1.0.6</version>
-				<scope>import</scope>
-			</dependency>
-
-		</dependencies>
-	</dependencyManagement>
 
 </project>

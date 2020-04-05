@@ -1,8 +1,0 @@
-server:
-  port: 19003
-spring:
-  main:
-    banner-mode: "off"
-  jooq:
-      sql-dialect: mysql
-

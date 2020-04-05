@@ -1,0 +1,23 @@
+3.	Replication 不同步，peer信息不存在；
+问题背景:
+Hbase2.1.0-cdh6.1.1版本（测试环境，因为问题2的时候 remove_peer），
+执行 add_peer命令，一直卡着，
+通过list_peers命令不能查看到 peer信息，
+通过list_procedures命令查看 addPeerProcedure 处于ruuning状态，有多个，因为多次执行add_peer命令；
+list_locks 查看，最早提交的add_peer命令 显示被 lock 独占且超时;
+
+解决过程：
+A.	通过执行如下命令释放正在处理的procedure：
+ hbase  org.apache.hbase.HBCK2 --skip   bypass -r -o pid号 (执行 test-2)
+222
+B.	执行如下命令，删除zk节点上replication相关数据：
+Rmr   /ngdata/sep/hbase-slave/logger
+Rmr   /hbase/replication/peers/logger
+
+C.	执行如下操作，添加peer信息到hbase
+执行 rive-god -- PeerRegister_test.addPeer
+        addPeer()
+        enablePeer()
+
+
+D.	通过list_peers命令，查看是否已有，如果没有，重启hbase集群，然后启动hbase-transfer，验证是否replication正常工作
