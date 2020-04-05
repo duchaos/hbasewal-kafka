@@ -23,14 +23,18 @@ public class KafkaProducerService {
         this.msgHandler = msgHandler;
     }
 
-    public void send(SinkRecord sinkRecord, ProducerRecord<String, String> producerRecord) throws Exception {
+    public void send(SinkRecord sinkRecord, ProducerRecord<String, String> producerRecord){
         // 发送消息
         if (producerRecord == null) {
             return;
         }
         // 若有未重试发送的消息则阻塞
-        while (msgHandler.haveFail(producerRecord.topic())) {
-            msgHandler.doRetrySend(producerRecord.topic());
+        try {
+            while (msgHandler.haveFail(producerRecord.topic())) {
+                msgHandler.doRetrySend(producerRecord.topic());
+            }
+        } catch (Exception e) {
+            log.error("重试失败",e);
         }
         // 异步发送
         log.debug("topic:{},partition:{},key:{}", producerRecord.topic(), producerRecord.partition(), producerRecord.key());
