@@ -114,4 +114,29 @@ HBase 自动会记录每一个参与主从复制对HLog文件中，HLogKey 的 s
 
 本项目中，我们对每一个topic 中的 异常数据都做了重试
 
+## 五、系统设计
+一、peer 的管理配置
+ 入口应通过http（管理页面预留）、zk 来控制
+动态添加、移除；开启、关闭 peer
+添加peer，zk创建对应的路径，方便后续创建该peer 对应的节点
+删除peer，删除zk路径前，先遍历该路径下子节点的任务（封装处理，发送、关闭kafka 发送），
+开启peer，修改该路径下对应的子节点任务状态为 peer 开启 （单独缓存行）
+关闭peer，修改该路径下对应的子节点任务状态为 peer 关闭（单独缓存行）
+二、WAL 的监听获取
+   根据 peer 使用的 subscriptionName 来创建 SepConsumer，Listener 复用
+三、WAL 的解析
+使用  CellUtil 工具，将对应对 SepEvent 解析为 SinkRecord
+需区分 是否是 删除操作,
+解析后将数据写入内存，定时、定量持久化到磁盘；防止某个任务处理 SinkRecord 失败，丢失对应批次的 信息
+四、同步任务的封装、处理
+监听 zk 中对任务对配置，通过  JavaCompiler 解析为对应对任务类，对任务所需数据进行封装
+需考虑zk 路径如何设计（Znode的大小限制为1M），路径对层级关系  "/peer/table/family/client" ，配置 信息 需包含，对应的 subscriptionName、topic、bootstrap,以及是否启用信息
+将配置Class 信息，存储到 mysql 中 还是 redis中
+redis 对多级存储 不够灵活
+mysql 可以定义多级树形存储，后续方便提供接口，在页面展示 配置Class 详情
+六、WAL 发送
+  公共的 kafka producer，获取任务对应配置的 topic、bootstrap
+  发送失败消息进行序列化存储，重发
+
+
 
