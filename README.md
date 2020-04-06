@@ -129,11 +129,11 @@ HBase 自动会记录每一个参与主从复制对HLog文件中，HLogKey 的 s
 需区分 是否是 删除操作,
 解析后将数据写入内存，定时、定量持久化到磁盘；防止某个任务处理 SinkRecord 失败，丢失对应批次的 信息
 四、同步任务的封装、处理
-监听 zk 中对任务对配置，通过  JavaCompiler 解析为对应对任务类，对任务所需数据进行封装
+~~监听 zk 中对任务对配置，通过  JavaCompiler 解析为对应对任务类，对任务所需数据进行封装
 需考虑zk 路径如何设计（Znode的大小限制为1M），路径对层级关系  "/peer/table/family/client" ，配置 信息 需包含，对应的 subscriptionName、topic、bootstrap,以及是否启用信息
 将配置Class 信息，存储到 mysql 中 还是 redis中
 redis 对多级存储 不够灵活
-mysql 可以定义多级树形存储，后续方便提供接口，在页面展示 配置Class 详情
+mysql 可以定义多级树形存储，后续方便提供接口，在页面展示 配置Class 详情~~
 六、WAL 发送
   公共的 kafka producer，获取任务对应配置的 topic、bootstrap
   发送失败消息进行序列化存储，重发
