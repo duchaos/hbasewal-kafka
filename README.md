@@ -3,13 +3,13 @@
 Hbase 集群的复制功能是通过Zookeeper的协助，从Master集群异步往Slave集群写WAL实现的。可以实现典型的Master-Master模式和Master-Slave模式。经过简单的配置即可实现类似下图中的集群复制：
 
 其原理直接引用社区中的架构图就可以看明白，主集群的hlog中记录了所有针对table的变更（目前不支持ddl的复制），通过实时读取hlog中代表事务的WALEdit来解析变更的数据然后发送到从集群中去。
-![](doc/流程.png)
+![](./doc/流程.png)
 ---
 ## 二、HLog结构
-![](doc/HLog文件.png)
+![](./doc/HLog文件.png)
 ---
 ## 三、整体架构
-![](doc/hbase同步.png)
+![](./doc/hbase同步.png)
 ---
 ## 四、处理流程
 
